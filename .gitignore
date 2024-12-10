@@ -1,0 +1,53 @@
+# Node.js
+node_modules/
+package-lock.json
+yarn.lock
+
+# Compilación de TypeScript
+dist/
+out/
+*.js
+*.js.map
+*.d.ts
+*.d.ts.map
+
+# Archivos de configuración locales
+.env
+.env.local
+.env.*.local
+
+# Directorios y archivos de IDE
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+.DS_Store
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+logs/
+*.log
+
+# Otros
+coverage/
+.nyc_output/
+*.tgz
+
+# Cache del paquete
+.pnpm-store/
+
+# Archivos generados por tests
+*.test.js
+*.test.js.map
+*.spec.js
+*.spec.js.map
+jest-coverage/
+
+# Archivos de bloqueo específicos del sistema operativo
+Thumbs.db

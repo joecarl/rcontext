@@ -1,0 +1,28 @@
+{
+	"name": "remote-context",
+	"version": "0.1.0",
+	"description": "A JavaScript library for managing entity relationships, handling CRUD operations, syncing with a server, and emitting real-time state updates to maintain a reactive and consistent frontend state.",
+	"author": "José Carlos HR <joecarlhr@gmail.com>",
+	"license": "MIT",
+	"main": "dist/index.js",
+	"types": "dist/index.d.ts",
+	"files": [
+		"/dist"
+	],
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/joecarl/remote-context"
+	},
+	"devDependencies": {
+		"typescript": "^5.7.2"
+	},
+	"bugs": {
+		"url": "https://github.com/joecarl/remote-context/issues"
+	},
+	"homepage": "https://github.com/joecarl/remote-context#readme",
+	"scripts": {
+		"build": "rm -rf dist && npx tsc",
+		"start": "echo \"Error: no dev mode available\" && exit 1",
+		"test": "echo \"Error: no test specified\" && exit 1"
+	}
+}

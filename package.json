@@ -1,5 +1,5 @@
 {
-	"name": "remote-context",
+	"name": "rcontext",
 	"version": "0.1.0",
 	"description": "A JavaScript library for managing entity relationships, handling CRUD operations, syncing with a server, and emitting real-time state updates to maintain a reactive and consistent frontend state.",
 	"author": "José Carlos HR <joecarlhr@gmail.com>",
@@ -11,15 +11,15 @@
 	],
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/joecarl/remote-context"
+		"url": "https://github.com/joecarl/rcontext"
 	},
 	"devDependencies": {
 		"typescript": "^5.7.2"
 	},
 	"bugs": {
-		"url": "https://github.com/joecarl/remote-context/issues"
+		"url": "https://github.com/joecarl/rcontext/issues"
 	},
-	"homepage": "https://github.com/joecarl/remote-context#readme",
+	"homepage": "https://github.com/joecarl/rcontext#readme",
 	"scripts": {
 		"build": "rm -rf dist && npx tsc",
 		"start": "echo \"Error: no dev mode available\" && exit 1",

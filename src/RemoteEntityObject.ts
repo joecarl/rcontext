@@ -95,7 +95,7 @@ export class RemoteEntityObject<T> {
 	}
 
 	getKeys() {
-
+		if (this.action === 'create') return null;
 		const setDef = this.ctx.getEntitySetDefinition(this.entitySet);
 		const keys: TKeysRecord = {};
 		for (const key of setDef.keys) {

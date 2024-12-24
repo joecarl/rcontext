@@ -1,6 +1,7 @@
+import type { IRemoteContextState, TStateChangeType } from './RemoteContextStateManager';
 import { RemoteEntityObject } from './RemoteEntityObject';
 import { RemoteContextStateManager } from './RemoteContextStateManager';
-import type { IRemoteContextState, TStateChangeType } from './RemoteContextStateManager';
+import { buildObjectKey } from './utils';
 
 export type TSets = Record<string, string[]>;
 
@@ -14,11 +15,14 @@ export interface IObjectRequest {
 	//data: any;
 	action: TAction;
 	newData: any;
-	keys: TKeysRecord;
+	keys: TKeysRecord | null;
 }
 
 export interface IParentKey {
-	prop: string;
+	/**
+	 * The order must be the same as the order of keys specified in the parent entitySet
+	 */
+	props: string[];
 	entitySet: string;
 }
 
@@ -158,13 +162,15 @@ export class RemoteContext {
 		const setDef = this.setsDefinitions[entitySet];
 		if (setDef.keys.length === 0) return null;
 
-		const key = setDef.keys[0];
+		//const key = setDef.keys[0];
 
 		for (const uid in this.objects) {
 			const iEnt = this.objects[uid];
 			if (iEnt.entitySet !== entitySet) continue;
-			const iEntKey = iEnt.getData()[key];
-			if (iEntKey === undefined) throw new Error('Key property is not present in object. KEY: ' + key + ' | SET: ' + iEnt.entitySet);
+			// const iEntKey = iEnt.getData()[key];
+			// if (iEntKey === undefined) throw new Error('Key property is not present in object. KEY: ' + key + ' | SET: ' + iEnt.entitySet);
+			const iEntKey = buildObjectKey(iEnt.getData(), setDef.keys);
+
 			if (iEntKey.toString() !== id) continue;
 			return uid;
 		}

@@ -1,5 +1,6 @@
 import type { TAction, IParentKey, RemoteContext, TSets } from './RemoteContext';
 import type { RemoteEntityObject } from './RemoteEntityObject';
+import { getParentKey } from './utils';
 
 export interface IRemoteContextState {
 	sets: TSets;
@@ -38,7 +39,7 @@ export class RemoteContextStateManager {
 		const setDef = this.ctx.getSetDefinition(setName);
 		const currProps = newState.map[ent.localUid].data;
 		const oldProps = this.contextState.map[ent.localUid].data;
-		const updatedParentKeys = setDef.parentKeys.filter(pKey => currProps[pKey.prop] !== oldProps[pKey.prop]);
+		const updatedParentKeys = setDef.parentKeys.filter(pKey => getParentKey(currProps, pKey) !== getParentKey(oldProps, pKey));
 
 		return updatedParentKeys;
 	}
@@ -48,10 +49,8 @@ export class RemoteContextStateManager {
 		const setName = ent.entitySet;
 		const entUid = ent.localUid;
 		const oldData = this.contextState.map[entUid].data;
-		const pKeyValue = oldData[parentKey.prop];
-		if (pKeyValue === undefined) {
-			throw new Error('Relational key "' + parentKey.prop + '" is not defined');
-		}
+		const pKeyValue = getParentKey(oldData, parentKey);
+
 		if (pKeyValue === null) {
 			return true;
 		}
@@ -97,10 +96,8 @@ export class RemoteContextStateManager {
 	private addToChildrenSet(newState: IRemoteContextState, ent: RemoteEntityObject<any>, parentKey: IParentKey) {
 
 		const setName = ent.entitySet;
-		const pKeyValue = ent.getData()[parentKey.prop];
-		if (pKeyValue === undefined) {
-			throw new Error('Relational key "' + parentKey.prop + '" is not defined');
-		}
+		const pKeyValue = getParentKey(ent.getData(), parentKey);
+		
 		if (pKeyValue === null) {
 			return true;
 		}

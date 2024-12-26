@@ -9,12 +9,19 @@ export type TAction = 'create' | 'read' | 'update' | 'delete';
 
 export type TKeysRecord = Record<string, string | number>;
 
-export interface IObjectRequest {
+export interface IObjectResult<T = any> {
+	success: boolean;
+	message: string;
+	data: T | null;
+	feedback: Record<keyof T, string> | null;
+}
+
+export interface IObjectRequest<T = any> {
 	entitySet: string;
 	remoteUid: string;
 	//data: any;
 	action: TAction;
-	newData: any;
+	newData: T;
 	keys: TKeysRecord | null;
 }
 
@@ -193,7 +200,7 @@ export class RemoteContext {
 		return built;
 	}
 
-	sync(resultsMap: Record<string, any>) {
+	sync(resultsMap: Record<string, IObjectResult>) {
 
 		const uids: string[] = [];
 		for (const localUid in resultsMap) {
@@ -207,13 +214,13 @@ export class RemoteContext {
 
 			const result = resultsMap[localUid];
 
-			if (reqItem.getAction() === 'delete') {
+			if (reqItem.getAction() === 'delete' && result.success === true) {
 
-				if (result === true) {
-					this.removeObject(localUid);
-				} else {
-					console.error('Error al eliminar objeto ', reqItem);
-				}
+				//if (result.success === true) {
+				this.removeObject(localUid);
+				// } else {
+				// 	console.error('Error al eliminar objeto ', reqItem);
+				// }
 
 			} else {
 

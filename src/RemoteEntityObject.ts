@@ -1,4 +1,4 @@
-import type { RemoteContext, IObjectRequest, TAction, TKeysRecord } from './RemoteContext';
+import type { RemoteContext, IObjectRequest, TAction, TKeysRecord, IObjectResult } from './RemoteContext';
 
 export class RemoteEntityObject<T> {
 
@@ -7,6 +7,8 @@ export class RemoteEntityObject<T> {
 	private remoteData: T | null = null;
 
 	private localData: Partial<T>;
+
+	private remoteState: IObjectResult | null = null;
 
 
 	constructor(
@@ -135,12 +137,20 @@ export class RemoteEntityObject<T> {
 	}
 
 
-	sync(remoteSavedData: T) {
+	sync(remoteState: IObjectResult<T>) {
+
+		this.remoteState = remoteState;
+		if (!this.remoteState.success) {
+			return;
+		}
+		if (!remoteState.data) {
+			return;
+		}
 
 		if (!this.remoteData) {
-			this.remoteData = { ...remoteSavedData };
+			this.remoteData = { ...remoteState.data };
 		} else {
-			this.remoteData = { ...this.remoteData, ...remoteSavedData };
+			this.remoteData = { ...this.remoteData, ...remoteState.data };
 		}
 		this.localData = {};
 

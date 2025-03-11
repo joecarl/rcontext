@@ -74,7 +74,16 @@ export class RemoteEntityObject<T> {
 			this.action = 'delete';
 			this.ctx.emitStateChange('update', [this.localUid]);
 		}
+	}
 
+	cancelRemove() {
+		
+		if (this.action !== 'delete') {
+			throw new Error('Cannot cancel remove on a non delete object');
+		}
+
+		this.action = Object.keys(this.localData).length > 0 ? 'update' : 'read';
+		this.ctx.emitStateChange('update', [this.localUid]);
 	}
 
 

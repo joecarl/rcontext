@@ -29,19 +29,22 @@ export class RemoteEntityObject<T> {
 		}
 
 		this.localData = localData ? { ...localData } : {};
-
 	}
 
-
+	/**
+	 * @returns The action to be performed on the object
+	 */
 	getAction() {
 		return this.action;
 	}
 
-
+	/**
+	 * @returns The data of the object, if the object is in creation mode the local data is returned
+	 */
 	getData() {
 
 		if (this.remoteData === null) {
-			return this.localData
+			return this.localData;
 		}
 
 		return {
@@ -50,7 +53,10 @@ export class RemoteEntityObject<T> {
 		};
 	}
 
-
+	/**
+	 * Updates the local data of the object
+	 * @param newData 
+	 */
 	edit(newData: Partial<T>) {
 
 		if (this.action === 'read') {
@@ -65,7 +71,9 @@ export class RemoteEntityObject<T> {
 		this.ctx.emitStateChange('update', [this.localUid]);
 	}
 
-
+	/**
+	 * Marks the object for deletion
+	 */
 	remove() {
 
 		if (this.action === 'create') {
@@ -76,6 +84,9 @@ export class RemoteEntityObject<T> {
 		}
 	}
 
+	/**
+	 * Cancels the remove action
+	 */
 	cancelRemove() {
 		
 		if (this.action !== 'delete') {
@@ -86,7 +97,25 @@ export class RemoteEntityObject<T> {
 		this.ctx.emitStateChange('update', [this.localUid]);
 	}
 
+	/**
+	 * Removes the object from the context immediately without waiting for the sync
+	 */
+	removeImmediately() {
+		this.remove();
+		this.ctx.sync({
+			[this.localUid]: {
+				success: true,
+				data: null,
+				message: '',
+				feedback: null,
+			},
+		});
+	}
 
+	/**
+	 * Returns the state of a field in the object
+	 * @param fieldName The name of the field
+	 */
 	getFieldState(fieldName: string) {
 
 		if (this.remoteData === null || this.remoteData === undefined) {
@@ -105,6 +134,9 @@ export class RemoteEntityObject<T> {
 		return 'unsaved';
 	}
 
+	/**
+	 * @returns The keys of the entity, if the entity is in creation mode null is returned
+	 */
 	getKeys() {
 		if (this.action === 'create') return null;
 		const setDef = this.ctx.getEntitySetDefinition(this.entitySet);
@@ -116,7 +148,9 @@ export class RemoteEntityObject<T> {
 		return keys;
 	}
 
-
+	/**
+	 * Builds a request object to be sent to the server
+	 */
 	buildRequest(): IObjectRequest | null {
 
 		if (this.action === 'read') {
@@ -135,7 +169,11 @@ export class RemoteEntityObject<T> {
 		}
 	}
 
-
+	/**
+	 * Updates the remote data of the object, this method is used to update the object
+	 * after a successful sync
+	 * @param remoteData 
+	 */
 	updateRemoteData(remoteData: T) {
 
 		if (this.action === 'create') {
@@ -145,7 +183,11 @@ export class RemoteEntityObject<T> {
 		this.ctx.emitStateChange('update', [this.localUid]);
 	}
 
-
+	/**
+	 * Syncs the object with the remote state
+	 * @param remoteState 
+	 * @returns 
+	 */
 	sync(remoteState: IObjectResult<T>) {
 
 		this.remoteState = remoteState;
@@ -166,6 +208,9 @@ export class RemoteEntityObject<T> {
 		this.action = 'read';
 	}
 
+	/**
+	 * @returns True if the object is synced with the remote state
+	 */
 	isSynced() {
 
 		//return Object.keys(this.localData).length === 0;

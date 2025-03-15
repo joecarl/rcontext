@@ -6,14 +6,14 @@ export function buildObjectKey(obj: any, keyArr: string[]) : number | string | n
 		const prop = keyArr[0];
 
 		if (obj[prop] === undefined) {
-			throw new Error('Key "' + prop + '" is not defined');
+			throw new Error('Key "' + prop + '" is not defined. It must be a number, string or null');
 		}
 		return obj[prop];
 	}
 
 	const kvArr = keyArr.map(prop => {
 		if (obj[prop] === undefined) {
-			throw new Error('Key "' + prop + '" is not defined');
+			throw new Error('Key "' + prop + '" is not defined. It must be a number, string or null');
 		}
 		return obj[prop];
 	});

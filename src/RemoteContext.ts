@@ -131,6 +131,10 @@ export class RemoteContext {
 		return this.stateManager.getState();
 	}
 
+	getOrphanEntities() {
+		return this.stateManager.getOrphanEntities();
+	}
+
 	removeObject(localUid: string) {
 
 		this.emitStateChange('remove', [localUid]);

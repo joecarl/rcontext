@@ -29,9 +29,16 @@ export type TStateChangeType = 'add' | 'remove' | 'update';
 
 export class RemoteContextStateManager {
 
+	/**
+	 * List of entities with defined parent keys which point to non-existent parent entities
+	 */
 	private orphanEntities: RemoteEntityObject<any>[] = [];
 
+	/**
+	 * The current state of the context
+	 */
 	private contextState: IRemoteContextState;
+
 
 	constructor(private readonly ctx: RemoteContext) {
 
@@ -99,9 +106,9 @@ export class RemoteContextStateManager {
 			}
 		};
 
-		// TODO: Revisar que esto funcione
+		// Also update the parentsMap of the entity
 		const iEnt = newState.map[ent.localUid];
-		if (iEnt) { // en caso de que se haya llamado a esta funcion por un 'delete' no tenemos que preocuparnos de actualizar iEnt ya que se habra eliminado
+		if (iEnt) {
 			newState.map[ent.localUid] = {
 				...iEnt,
 				parentsMap: {
@@ -110,10 +117,11 @@ export class RemoteContextStateManager {
 				}
 			};
 		}
+		// else: in case of a 'delete' operation, the entity has already been removed from the state so we don't need to update it
 
 		return true;
 	}
-	
+
 	/**
 	 * Updates the childrenSets of the parent entities of the provided entity
 	 * @param newState The state to update
@@ -125,7 +133,7 @@ export class RemoteContextStateManager {
 
 		const setName = ent.entitySet;
 		const pKeyValue = getParentKey(ent.getData(), parentKey);
-		
+
 		if (pKeyValue === null) {
 			return true;
 		}
@@ -153,7 +161,7 @@ export class RemoteContextStateManager {
 			}
 		};
 
-		// TODO: Revisar que esto funcione
+		// Also update the parentsMap of the entity
 		const iEnt = newState.map[ent.localUid];
 		newState.map[ent.localUid] = {
 			...iEnt,
@@ -199,7 +207,7 @@ export class RemoteContextStateManager {
 		}
 
 		if (changeType === 'remove') {
-			
+
 			const iEnt = this.contextState.map[ent.localUid];
 			for (const entitySet in iEnt.childrenSets) {
 				const childrenSet = iEnt.childrenSets[entitySet];
@@ -211,15 +219,20 @@ export class RemoteContextStateManager {
 						...childEnt,
 						parentsMap: newParentsMap
 					}
-					
+
 					const idx = this.orphanEntities.indexOf(childEnt.entity);
 					if (idx === -1) this.orphanEntities.push(childEnt.entity);
 				}
-			}			
+			}
 		}
 	}
 
-
+	/**
+	 * Emits a state change which updates the state of the context
+	 * @param changeType The type of change that was applied
+	 * @param affectedUids The uids of the entities that changed. This function will update the state of these entities and their parent/child entities if necessary
+	 * @returns The updated state
+	 */
 	emitChange(changeType: TStateChangeType, affectedUids: string[]) {
 
 		const newState = { ...this.contextState };
@@ -265,8 +278,12 @@ export class RemoteContextStateManager {
 
 
 	getState() {
-		
+
 		return this.contextState;
+	}
+
+	getOrphanEntities() {
+		return this.orphanEntities;
 	}
 
 

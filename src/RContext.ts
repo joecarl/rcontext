@@ -47,13 +47,15 @@ export class RContext {
 
 	private static readonly uidPrefix = '~uid~';
 
+	private readonly stateManager: RemoteContextStateManager;
+
 	private uidIndex: number = 1;
 
 	private objects: Record<string, RemoteEntityObject<any>> = {};
 
 	private setsDefinitions: Record<string, ISetDefinition> = {};
 
-	private readonly stateManager: RemoteContextStateManager;
+	private triggerStateChangeTimeout: any;
 
 	public onContextChange: (newState: IRemoteContextState) => void;
 
@@ -125,8 +127,13 @@ export class RContext {
 	emitStateChange(changeType: TStateChangeType, affectedUids: string[]) {
 
 		const newState = this.stateManager.emitChange(changeType, affectedUids);
+		
 		if (typeof this.onContextChange !== 'function') return;
-		this.onContextChange(newState);
+
+		clearTimeout(this.triggerStateChangeTimeout);
+		this.triggerStateChangeTimeout = setTimeout(() => {
+			this.onContextChange(newState);
+		}, 1);
 	}
 
 	getState() {

@@ -287,3 +287,25 @@ test('building a request for an entity whose parent is in creation mode also bui
 	expect(reqs[parentEnt.localUid]).toBeTruthy();
 	expect(reqs[childEnt.localUid]).toBeTruthy();
 });
+
+
+test('onContextChange event is triggered only once after multiple synchronous changes', async () => {
+
+	const ctx = createContext();
+
+	let eventCount = 0;
+	ctx.onContextChange = () => { eventCount++; };
+
+	const parentObj = { name: 'ent1' };
+	const parentEnt = ctx.createObject('set1_independant', parentObj);
+
+	const otherObj = { name: 'ent2' };
+	const otherEnt = ctx.createObject('set1_independant', parentObj);
+
+	const childObj = { parentId: parentEnt.toRelationalKey(), name: 'ent3' };
+	const childEnt = ctx.createObject('set3_dependsOn_set1', childObj);
+
+	await new Promise(resolve => setTimeout(resolve, 100));
+
+	expect(eventCount).toBe(1);
+});

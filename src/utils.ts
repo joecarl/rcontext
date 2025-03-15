@@ -1,6 +1,6 @@
 import type { IParentKey } from './RemoteContext';
 
-export function buildObjectKey(obj: any, keyArr: string[]) {
+export function buildObjectKey(obj: any, keyArr: string[]) : number | string | null {
 
 	if (keyArr.length === 1) {
 		const prop = keyArr[0];
@@ -15,7 +15,7 @@ export function buildObjectKey(obj: any, keyArr: string[]) {
 		if (obj[prop] === undefined) {
 			throw new Error('Key "' + prop + '" is not defined');
 		}
-		return obj[prop]
+		return obj[prop];
 	});
 
 	return JSON.stringify(kvArr);

@@ -115,6 +115,11 @@ export class RemoteContext {
 	}
 
 	//deberia ser private
+	/**
+	 * Tells the state manager to emit a state change
+	 * @param changeType 'add' if the objects must be added, 'update' if the objects must be updated, 'remove' if the objects must be removed
+	 * @param affectedUids the uids of the objects that are affected by the change
+	 */
 	emitStateChange(changeType: TStateChangeType, affectedUids: string[]) {
 
 		const newState = this.stateManager.emitChange(changeType, affectedUids);
@@ -169,13 +174,9 @@ export class RemoteContext {
 		const setDef = this.setsDefinitions[entitySet];
 		if (setDef.keys.length === 0) return null;
 
-		//const key = setDef.keys[0];
-
 		for (const uid in this.objects) {
 			const iEnt = this.objects[uid];
 			if (iEnt.entitySet !== entitySet) continue;
-			// const iEntKey = iEnt.getData()[key];
-			// if (iEntKey === undefined) throw new Error('Key property is not present in object. KEY: ' + key + ' | SET: ' + iEnt.entitySet);
 			const iEntKey = buildObjectKey(iEnt.getData(), setDef.keys);
 
 			if (iEntKey.toString() !== id) continue;
@@ -216,12 +217,8 @@ export class RemoteContext {
 
 			if (reqItem.getAction() === 'delete' && result.success === true) {
 
-				//if (result.success === true) {
 				this.removeObject(localUid);
-				// } else {
-				// 	console.error('Error al eliminar objeto ', reqItem);
-				// }
-
+				
 			} else {
 
 				uids.push(localUid);

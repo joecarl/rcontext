@@ -2,11 +2,17 @@ import type { TAction, IParentKey, RemoteContext, TSets } from './RemoteContext'
 import type { RemoteEntityObject } from './RemoteEntityObject';
 import { getParentKey } from './utils';
 
+/**
+ * Represents the state of the context
+ */
 export interface IRemoteContextState {
 	sets: TSets;
 	map: Record<string, IEnt<any>>;
 }
 
+/**
+ * Represents the state of a single entity in the context
+ */
 export interface IEnt<T> {
 	entity: RemoteEntityObject<T>;
 	action: TAction;
@@ -15,7 +21,9 @@ export interface IEnt<T> {
 	parentsMap: Record<string, string>;
 }
 
-
+/**
+ * Represents the type of change that must be applied to the state
+ */
 export type TStateChangeType = 'add' | 'remove' | 'update';
 
 
@@ -33,6 +41,12 @@ export class RemoteContextStateManager {
 		};
 	}
 
+	/**
+	 * Returns the updated parent keys definitions of the provided entity. It compares the parent keys of the old state with the new state
+	 * @param newState The new state
+	 * @param ent The entity that was updated
+	 * @returns The updated parent keys definitions
+	 */
 	private getUpdatedParentKeys(newState: IRemoteContextState, ent: RemoteEntityObject<any>) {
 
 		const setName = ent.entitySet;
@@ -44,6 +58,13 @@ export class RemoteContextStateManager {
 		return updatedParentKeys;
 	}
 
+	/**
+	 * Updates the childrenSets of the parent entities of the provided entity
+	 * @param newState The state to update
+	 * @param ent The removed entity
+	 * @param parentKey 
+	 * @returns True if the operation was successful, false otherwise
+	 */
 	private removeFromChildrenSet(newState: IRemoteContextState, ent: RemoteEntityObject<any>, parentKey: IParentKey) {
 
 		const setName = ent.entitySet;
@@ -87,12 +108,19 @@ export class RemoteContextStateManager {
 					...iEnt.parentsMap,
 					[pSetName]: undefined,
 				}
-			}
+			};
 		}
 
 		return true;
 	}
-
+	
+	/**
+	 * Updates the childrenSets of the parent entities of the provided entity
+	 * @param newState The state to update
+	 * @param ent The added entity
+	 * @param parentKey 
+	 * @returns True if the operation was successful, false otherwise
+	 */
 	private addToChildrenSet(newState: IRemoteContextState, ent: RemoteEntityObject<any>, parentKey: IParentKey) {
 
 		const setName = ent.entitySet;
@@ -104,11 +132,12 @@ export class RemoteContextStateManager {
 		const pSetName = parentKey.entitySet;
 		const parentUid = this.ctx.findEntityUid(pSetName, pKeyValue);
 		if (!parentUid) {
-			//console.warn('Parent not found', pSetName, pKeyValue);
-			//success = false;
 			return false;
 		}
 		const iParentEnt = newState.map[parentUid];
+		if (!iParentEnt) {
+			return false;
+		}
 		const childrenSet = iParentEnt.childrenSets[setName] ?? [];
 
 		if (childrenSet.indexOf(ent.localUid) !== -1) return true;
@@ -139,6 +168,9 @@ export class RemoteContextStateManager {
 
 	/**
 	 * Finds the parent elements of the provided entity in the given state and then updates their corresponding childrenSets
+	 * @param newState The state to update
+	 * @param ent The entity which was added, removed or updated
+	 * @param changeType The type of change that was applied
 	 */
 	private updateStateHierarchy(newState: IRemoteContextState, ent: RemoteEntityObject<any>, changeType: TStateChangeType) {
 
@@ -164,6 +196,26 @@ export class RemoteContextStateManager {
 			if (idx !== -1) this.orphanEntities.splice(idx, 1);
 		} else {
 			if (idx === -1) this.orphanEntities.push(ent);
+		}
+
+		if (changeType === 'remove') {
+			
+			const iEnt = this.contextState.map[ent.localUid];
+			for (const entitySet in iEnt.childrenSets) {
+				const childrenSet = iEnt.childrenSets[entitySet];
+				for (const childUid of childrenSet) {
+					const childEnt = newState.map[childUid];
+					const newParentsMap = { ...childEnt.parentsMap };
+					delete newParentsMap[setName];
+					newState.map[childUid] = {
+						...childEnt,
+						parentsMap: newParentsMap
+					}
+					
+					const idx = this.orphanEntities.indexOf(childEnt.entity);
+					if (idx === -1) this.orphanEntities.push(childEnt.entity);
+				}
+			}			
 		}
 	}
 
@@ -203,9 +255,8 @@ export class RemoteContextStateManager {
 
 			this.updateStateHierarchy(newState, ent, changeType);
 			[...this.orphanEntities].forEach(orphanEnt => {
-				this.updateStateHierarchy(newState, orphanEnt, changeType);
+				this.updateStateHierarchy(newState, orphanEnt, 'add');
 			});
-			//console.log('huerfanos', this.orphanEntities);
 		}
 
 		this.contextState = newState;
@@ -214,7 +265,7 @@ export class RemoteContextStateManager {
 
 
 	getState() {
-
+		
 		return this.contextState;
 	}
 

@@ -121,7 +121,7 @@ test('adding related objects in async events still creates relationships in stat
 			resolve(ent1);
 		}, 200);
 	});
-	
+
 	expect(ent1).toBeTruthy();
 
 	const state = ctx.getState();
@@ -144,7 +144,7 @@ test('adding related objects in async events still creates relationships in stat
 
 
 test('adding entity with null parent key does not create relationships in state and does not store the entity as an orphan', () => {
-	
+
 	const ctx = createContext();
 
 	const obj = { id: 2, parentId: null, name: 'ent' };
@@ -159,3 +159,22 @@ test('adding entity with null parent key does not create relationships in state 
 	const orphans = ctx.getOrphanEntities();
 	expect(orphans).toHaveLength(0);
 });
+
+
+test('adding entity with defined parent key but missing parent does not create relationships in state and stores it as an orphan', () => {
+
+	const ctx = createContext();
+
+	const obj = { id: 2, parentId: 1, name: 'ent' };
+
+	const ent = ctx.trackObject('entitySet3', obj);
+
+	const state = ctx.getState();
+
+	const parentUid = state.map[ent.localUid].parentsMap['entitySet1'];
+	expect(parentUid).toBeFalsy();
+
+	const orphans = ctx.getOrphanEntities();
+	expect(orphans).toHaveLength(1);
+	expect(orphans[0]).toMatchObject(ent);
+});	

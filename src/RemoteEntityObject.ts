@@ -89,7 +89,7 @@ export class RemoteEntityObject<T> {
 	 * Cancels the remove action
 	 */
 	cancelRemove() {
-		
+
 		if (this.action !== 'delete') {
 			throw new Error('Cannot cancel remove on a non delete object');
 		}
@@ -102,7 +102,7 @@ export class RemoteEntityObject<T> {
 	 * Removes the object from the context immediately without waiting for the sync
 	 */
 	removeImmediately() {
-		
+
 		this.remove();
 		this.ctx.sync({
 			[this.localUid]: {
@@ -224,7 +224,7 @@ export class RemoteEntityObject<T> {
 	 * @returns The feedback of the last sync operation
 	 */
 	getSyncResult() {
-	
+
 		return this.syncResult;
 	}
 

@@ -1,6 +1,6 @@
 import type { IParentKey } from './RContext';
 
-export function buildObjectKey(obj: any, keyArr: string[]) : number | string | null {
+export function buildObjectKey(obj: any, keyArr: string[]): number | string | null {
 
 	if (keyArr.length === 1) {
 		const prop = keyArr[0];

@@ -66,7 +66,7 @@ function createContext() {
 test('adding related objects creates relationships in state', () => {
 
 	const ctx = createContext();
-	
+
 	const childObj = { id: 2, parentId: 1, name: 'ent2' };
 	const childEnt = ctx.trackObject('set3_dependsOn_set1', childObj);
 
@@ -98,7 +98,7 @@ test('removing related objects removes relationships in state', () => {
 
 	const childObj = { id: 2, parentId: 1, name: 'ent2' };
 	const childEnt = ctx.trackObject('set3_dependsOn_set1', childObj);
-	
+
 	const parentObj = { id: 1, name: 'ent1' };
 	const parentEnt = ctx.trackObject('set1_independant', parentObj);
 
@@ -117,10 +117,10 @@ test('removing related objects removes relationships in state', () => {
 test('adding related objects in async events still creates relationships in state', async () => {
 
 	const ctx = createContext();
-	
+
 	const childObj = { id: 2, parentId: 1, name: 'ent2' };
 	const childEnt = ctx.trackObject('set3_dependsOn_set1', childObj);
-	
+
 	const parentObj = { id: 1, name: 'ent1' };
 	const parentEnt = await new Promise<RemoteEntityObject<any>>(resolve => {
 		setTimeout(() => {
@@ -191,11 +191,11 @@ test('adding one of the missing parents of an orphan entity with multiple parent
 
 	const childObj = { id: 2, parentId: 1, parentIdB: 1, name: 'ent2' };
 	const childEnt = ctx.trackObject('set5_dependsOn_set1_and_set2', childObj);
-	
+
 	const orphans = ctx.getOrphanEntities();
 	expect(orphans).toHaveLength(1);
 	expect(orphans[0]).toMatchObject(childEnt);
-	
+
 	const parentObj = { id: 1, name: 'ent1' };
 	const parentEnt = ctx.trackObject('set1_independant', parentObj);
 
@@ -213,21 +213,21 @@ test('adding one of the missing parents of an orphan entity with multiple parent
 test('adding both missing parents of an orphan entity with multiple parents creates the relationship and removes it from the orphan list', () => {
 
 	const ctx = createContext();
-	
+
 	const childObj = { id: 2, parentId: 1, parentIdB: 1, name: 'ent2' };
 	const childEnt = ctx.trackObject('set5_dependsOn_set1_and_set2', childObj);
-	
+
 	const orphans = ctx.getOrphanEntities();
 	expect(orphans).toHaveLength(1);
 	expect(orphans[0]).toMatchObject(childEnt);
-	
+
 	const parentObj1 = { id: 1, name: 'ent1' };
 	const parentEnt1 = ctx.trackObject('set1_independant', parentObj1);
-	
+
 	const orphans2 = ctx.getOrphanEntities();
 	expect(orphans2).toHaveLength(1);
 	expect(orphans2[0]).toMatchObject(childEnt);
-	
+
 	const parentObj2 = { id: 1, name: 'ent1b' };
 	const parentEnt2 = ctx.trackObject('set2_independant', parentObj2);
 
@@ -281,9 +281,9 @@ test('building a request for an entity whose parent is in creation mode also bui
 	const childEnt = ctx.createObject('set3_dependsOn_set1', childObj);
 
 	const reqs = ctx.buildRequestsForUids([childEnt.localUid]);
-	
-	// The request dictionary must have 2 elements and specifically they must be ent1 and ent3
+
+	// The request dictionary must have 2 elements and specifically they must be parentEnt and childEnt
 	expect(Object.keys(reqs)).toHaveLength(2);
 	expect(reqs[parentEnt.localUid]).toBeTruthy();
 	expect(reqs[childEnt.localUid]).toBeTruthy();
-});	
+});

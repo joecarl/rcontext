@@ -220,7 +220,7 @@ export class RContext {
 	 * @returns A record with the requests
 	 */
 	buildRequestsForUids(uids: string[]) {
-		
+
 		const built: Record<string, IObjectRequest> = {};
 
 		for (const objLocalUid of uids) {
@@ -253,7 +253,7 @@ export class RContext {
 	 * @returns The uids of the ascendant entities
 	 */
 	private getAscendantUidsInCreationMode(uid: string) {
-		
+
 		const ascendants: string[] = [];
 		const state = this.getState();
 
@@ -267,7 +267,7 @@ export class RContext {
 			}
 		}
 
-		return ascendants;		
+		return ascendants;
 	}
 
 	/**
@@ -291,7 +291,7 @@ export class RContext {
 			if (reqItem.getAction() === 'delete' && result.success === true) {
 
 				this.removeObject(localUid);
-				
+
 			} else {
 
 				uids.push(localUid);

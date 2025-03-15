@@ -73,8 +73,9 @@ Please note that the methods in `RContextStateHelper` never return pure entities
 
 ```ts
 
-// Instead of accessing the state directly from the context, in reactive apps, it’s better to use the event listener. This approach is more efficient because the event is triggered asynchronously, avoiding unnecessary state updates.
-
+// Instead of accessing the state directly from the context, in reactive apps,
+// it’s better to use the event listener. This approach is more efficient 
+// because the event is triggered asynchronously and skips unnecessary updates.
 ctx.onContextChange = (newContextState) => {
     // Code to update my reactive app state
 };
@@ -90,8 +91,10 @@ ent2.edit({ name: 'New name for this entity!' });
 // Add an entity in creation mode
 const ent3 = ctx.createObject('mySet1', { name: 'My entity 3' });
 
-// Generate the composite request object, which will include all the necessary information for the server to update the remote data.
-// In this case, it will contain information to create `ent3` and update the `name property` of `ent2`.
+// Generate the composite request object, which will include all the necessary
+// information for the server to update the remote data.
+// In this case, it will contain information to create `ent3` and update the
+// `name` property of `ent2`.
 const requests = ctx.buildRequests();
 
 // Send the generated object to the server and handle the information there 

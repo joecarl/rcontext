@@ -52,7 +52,7 @@ test('adding related objects creates relationships in state', () => {
 
 	const state = ctx.getState();
 
-	const chSet = state.map[ent1.localUid].childrenSets.entitySet2;
+	const chSet = state.map[ent1.localUid].childrenSets['entitySet2'];
 	expect(chSet).toBeTruthy();
 
 	const chUid = chSet[0];
@@ -61,7 +61,7 @@ test('adding related objects creates relationships in state', () => {
 	expect(ch).toBeTruthy();
 	expect(ch.data).toMatchObject({ ...obj2 });
 
-	const parentUid = state.map[ent2.localUid].parentsMap.entitySet1;
+	const parentUid = state.map[ent2.localUid].parentsMap['entitySet1'];
 	expect(parentUid).toBe(ent1.localUid);
 	const parent = state.map[parentUid];
 	expect(parent).toBeTruthy();
@@ -86,7 +86,7 @@ test('removing related objects removes relationships in state', () => {
 	const ient1 = state.map[ent1.localUid];
 	expect(ient1).toBeFalsy();
 
-	const parentUid = state.map[ent2.localUid].parentsMap.entitySet1;
+	const parentUid = state.map[ent2.localUid].parentsMap['entitySet1'];
 	expect(parentUid).toBeFalsy();
 });
 
@@ -101,7 +101,7 @@ test('adding related objects with missing parent does not create relationships i
 
 	const state = ctx.getState();
 
-	const parentUid = state.map[ent2.localUid].parentsMap.entitySet1;
+	const parentUid = state.map[ent2.localUid].parentsMap['entitySet1'];
 	expect(parentUid).toBeFalsy();
 });
 
@@ -126,7 +126,7 @@ test('adding related objects in async events still creates relationships in stat
 
 	const state = ctx.getState();
 
-	const chSet = state.map[ent1.localUid].childrenSets.entitySet2;
+	const chSet = state.map[ent1.localUid].childrenSets['entitySet2'];
 	expect(chSet).toBeTruthy();
 
 	const chUid = chSet[0];
@@ -135,7 +135,7 @@ test('adding related objects in async events still creates relationships in stat
 	expect(ch).toBeTruthy();
 	expect(ch.data).toMatchObject({ ...obj2 });
 
-	const parentUid = state.map[ent2.localUid].parentsMap.entitySet1;
+	const parentUid = state.map[ent2.localUid].parentsMap['entitySet1'];
 	expect(parentUid).toBe(ent1.localUid);
 	const parent = state.map[parentUid];
 	expect(parent).toBeTruthy();
@@ -153,7 +153,7 @@ test('adding entity with null parent key does not create relationships in state 
 
 	const state = ctx.getState();
 
-	const parentUid = state.map[ent.localUid].parentsMap.entitySet1;
+	const parentUid = state.map[ent.localUid].parentsMap['entitySet1'];
 	expect(parentUid).toBeFalsy();
 
 	const orphans = ctx.getOrphanEntities();

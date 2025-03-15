@@ -19,7 +19,6 @@ export interface IObjectResult<T = any> {
 export interface IObjectRequest<T = any> {
 	entitySet: string;
 	remoteUid: string;
-	//data: any;
 	action: TAction;
 	newData: T;
 	keys: TKeysRecord | null;
@@ -30,6 +29,10 @@ export interface IParentKey {
 	 * The order must be the same as the order of keys specified in the parent entitySet
 	 */
 	props: string[];
+
+	/**
+	 * The name of the parent entitySet
+	 */
 	entitySet: string;
 }
 

@@ -1,4 +1,4 @@
-import type { TAction, IParentKey, RemoteContext, TSets } from './RemoteContext';
+import type { TAction, IParentKey, RemoteContext, TSets, IObjectResult } from './RemoteContext';
 import type { RemoteEntityObject } from './RemoteEntityObject';
 import { getParentKey } from './utils';
 
@@ -19,6 +19,7 @@ export interface IEnt<T> {
 	data: T;
 	childrenSets: TSets;
 	parentsMap: Record<string, string>;
+	syncResult: IObjectResult<T> | null;
 }
 
 /**
@@ -277,12 +278,13 @@ export class RemoteContextStateManager {
 	}
 
 
-	getState() {
+	getState(): Readonly<IRemoteContextState> {
 
 		return this.contextState;
 	}
 
 	getOrphanEntities() {
+
 		return this.orphanEntities;
 	}
 
@@ -295,6 +297,7 @@ export class RemoteContextStateManager {
 			parentsMap: {},
 			data: ent.getData(),
 			entity: ent,
+			syncResult: ent.getSyncResult(),
 		};
 	}
 }

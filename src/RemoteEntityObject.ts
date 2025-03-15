@@ -8,7 +8,7 @@ export class RemoteEntityObject<T> {
 
 	private localData: Partial<T>;
 
-	private remoteState: IObjectResult | null = null;
+	private syncResult: IObjectResult<T> | null = null;
 
 
 	constructor(
@@ -101,6 +101,7 @@ export class RemoteEntityObject<T> {
 	 * Removes the object from the context immediately without waiting for the sync
 	 */
 	removeImmediately() {
+		
 		this.remove();
 		this.ctx.sync({
 			[this.localUid]: {
@@ -138,6 +139,7 @@ export class RemoteEntityObject<T> {
 	 * @returns The keys of the entity, if the entity is in creation mode null is returned
 	 */
 	getKeys() {
+
 		if (this.action === 'create') return null;
 		const setDef = this.ctx.getEntitySetDefinition(this.entitySet);
 		const keys: TKeysRecord = {};
@@ -185,23 +187,23 @@ export class RemoteEntityObject<T> {
 
 	/**
 	 * Syncs the object with the remote state
-	 * @param remoteState 
+	 * @param syncResult 
 	 * @returns 
 	 */
-	sync(remoteState: IObjectResult<T>) {
+	sync(syncResult: IObjectResult<T>) {
 
-		this.remoteState = remoteState;
-		if (!this.remoteState.success) {
+		this.syncResult = syncResult;
+		if (!this.syncResult.success) {
 			return;
 		}
-		if (!remoteState.data) {
+		if (!syncResult.data) {
 			return;
 		}
 
 		if (!this.remoteData) {
-			this.remoteData = { ...remoteState.data };
+			this.remoteData = { ...syncResult.data };
 		} else {
-			this.remoteData = { ...this.remoteData, ...remoteState.data };
+			this.remoteData = { ...this.remoteData, ...syncResult.data };
 		}
 		this.localData = {};
 
@@ -215,6 +217,14 @@ export class RemoteEntityObject<T> {
 
 		//return Object.keys(this.localData).length === 0;
 		return this.action === 'read';
+	}
+
+	/**
+	 * @returns The feedback of the last sync operation
+	 */
+	getSyncResult() {
+	
+		return this.syncResult;
 	}
 
 	/**

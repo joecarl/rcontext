@@ -12,6 +12,13 @@ function createContext() {
 		parentKeys: []
 	});
 
+	// Indepedent entity set
+	ctx.addEntitySet({
+		name: 'entitySet1b',
+		keys: ['id'],
+		parentKeys: []
+	});
+
 	// Entity set whose parent is entitySet1
 	ctx.addEntitySet({
 		name: 'entitySet2',
@@ -32,6 +39,22 @@ function createContext() {
 			{
 				entitySet: 'entitySet3',
 				props: ['parentId']
+			}
+		]
+	});
+
+	// Entity set with multiple parents
+	ctx.addEntitySet({
+		name: 'entitySet4',
+		keys: ['id'],
+		parentKeys: [
+			{
+				entitySet: 'entitySet1',
+				props: ['parentId']
+			},
+			{
+				entitySet: 'entitySet1b',
+				props: ['parentIdB']
 			}
 		]
 	});
@@ -177,4 +200,77 @@ test('adding entity with defined parent key but missing parent does not create r
 	const orphans = ctx.getOrphanEntities();
 	expect(orphans).toHaveLength(1);
 	expect(orphans[0]).toMatchObject(ent);
-});	
+});
+
+test('adding one of the missing parents of an orphan entity with multiple parents creates the relationship but keeps it in the orphan list', () => {
+
+	const ctx = createContext();
+
+	const obj1 = { id: 1, name: 'ent1' };
+	const obj2 = { id: 2, parentId: 1, parentIdB: 1, name: 'ent2' };
+
+	const ent2 = ctx.trackObject('entitySet4', obj2);
+
+	const orphans = ctx.getOrphanEntities();
+	expect(orphans).toHaveLength(1);
+	expect(orphans[0]).toMatchObject(ent2);
+
+	const ent1 = ctx.trackObject('entitySet1', obj1);
+	const state = ctx.getState();
+
+	const parentUid = state.map[ent2.localUid].parentsMap['entitySet1'];
+	expect(parentUid).toBe(ent1.localUid);
+
+	const orphans2 = ctx.getOrphanEntities();
+	expect(orphans2).toHaveLength(1);
+	expect(orphans2[0]).toMatchObject(ent2);
+});
+
+
+test('adding both missing parents of an orphan entity with multiple parents creates the relationship and removes it from the orphan list', () => {
+
+	const ctx = createContext();
+
+	const obj1 = { id: 1, name: 'ent1' };
+	const obj1b = { id: 1, name: 'ent1b' };
+	const obj2 = { id: 2, parentId: 1, parentIdB: 1, name: 'ent2' };
+
+	const ent2 = ctx.trackObject('entitySet4', obj2);
+
+	const orphans = ctx.getOrphanEntities();
+	expect(orphans).toHaveLength(1);
+	expect(orphans[0]).toMatchObject(ent2);
+
+	const ent1 = ctx.trackObject('entitySet1', obj1);
+	
+	const orphans2 = ctx.getOrphanEntities();
+	expect(orphans2).toHaveLength(1);
+	expect(orphans2[0]).toMatchObject(ent2);
+
+	const ent1b = ctx.trackObject('entitySet1b', obj1b);
+	const state = ctx.getState();
+
+	const parentUid = state.map[ent2.localUid].parentsMap['entitySet1'];
+	expect(parentUid).toBe(ent1.localUid);
+	const parentUidB = state.map[ent2.localUid].parentsMap['entitySet1b'];
+	expect(parentUidB).toBe(ent1b.localUid);
+
+	const orphans3 = ctx.getOrphanEntities();
+	expect(orphans3).toHaveLength(0);
+});
+
+
+test('editing an entity props updates the state', () => {
+
+	const ctx = createContext();
+
+	const obj1 = { id: 1, name: 'ent1' };
+	const ent1 = ctx.trackObject('entitySet1', obj1);
+
+	ent1.edit({ name: 'entidad1' });
+
+	const state = ctx.getState();
+
+	const ient1 = state.map[ent1.localUid];
+	expect(ient1.data.name).toBe('entidad1');
+});

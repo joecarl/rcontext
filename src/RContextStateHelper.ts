@@ -6,7 +6,7 @@ import { IEnt, IRemoteContextState } from './RemoteContextStateManager';
  */
 export class RContextStateHelper {
 	
-	constructor(private readonly state: IRemoteContextState) { }
+	constructor(public readonly state: IRemoteContextState) { }
 
 	getChildren<T = any>(parentEnt: IEnt<any>, chSet: string): IEnt<T>[] {
 		const state = this.state;

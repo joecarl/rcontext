@@ -43,7 +43,7 @@ interface ISetDefinition {
 }
 
 
-export class RemoteContext {
+export class RContext {
 
 	private static readonly uidPrefix = '~uid~';
 
@@ -111,10 +111,9 @@ export class RemoteContext {
 		return this.setsDefinitions[setName];
 	}
 
-	//deberia ser private
-	getUid() {
+	getNewUid() {
 
-		return RemoteContext.uidPrefix + (this.uidIndex++);
+		return RContext.uidPrefix + (this.uidIndex++);
 	}
 
 	//deberia ser private
@@ -131,10 +130,12 @@ export class RemoteContext {
 	}
 
 	getState() {
+
 		return this.stateManager.getState();
 	}
 
 	getOrphanEntities() {
+
 		return this.stateManager.getOrphanEntities();
 	}
 
@@ -175,7 +176,7 @@ export class RemoteContext {
 	findEntityUid(entitySet: string, id: string | number) {
 
 		id = id.toString();
-		const isLocalUid = id.indexOf(RemoteContext.uidPrefix) === 0;
+		const isLocalUid = id.indexOf(RContext.uidPrefix) === 0;
 		if (isLocalUid) return this.objects[id] ? id : null;
 
 		const setDef = this.setsDefinitions[entitySet];
@@ -193,6 +194,10 @@ export class RemoteContext {
 		return null;
 	}
 
+	/**
+	 * Builds requests for all the objects in the context
+	 * @returns A record with the requests
+	 */
 	buildRequests() {
 
 		const built: Record<string, IObjectRequest> = {};
@@ -208,6 +213,67 @@ export class RemoteContext {
 		return built;
 	}
 
+	/**
+	 * Builds requests for the provided uids. Please note this method will also
+	 * include the requests for the parent entitines whose actions are 'create'
+	 * @param uids The uids of the entities to build requests for
+	 * @returns A record with the requests
+	 */
+	buildRequestsForUids(uids: string[]) {
+		
+		const built: Record<string, IObjectRequest> = {};
+
+		for (const objLocalUid of uids) {
+
+			// Skip if the object has already been built
+			if (built[objLocalUid]) continue;
+
+			// Build the request for the object
+			const obj = this.objects[objLocalUid];
+			const req = obj.buildRequest();
+			if (!req) continue;
+			built[objLocalUid] = req;
+
+			// Build the requests for the ascendant entities in creation mode
+			const requiredAscendants = this.getAscendantUidsInCreationMode(objLocalUid);
+			for (const ascUid of requiredAscendants) {
+				const ascObj = this.objects[ascUid];
+				const ascReq = ascObj.buildRequest();
+				if (!ascReq || built[ascUid]) continue;
+				built[ascUid] = ascReq;
+			}
+		}
+
+		return built;
+	}
+
+	/**
+	 * Returns the uids of the ascendant entities of the provided entity that are in creation mode
+	 * @param uid The uid of the entity
+	 * @returns The uids of the ascendant entities
+	 */
+	private getAscendantUidsInCreationMode(uid: string) {
+		
+		const ascendants: string[] = [];
+		const state = this.getState();
+
+		const parentsMap = state.map[uid].parentsMap;
+		for (const parentSet in parentsMap) {
+			const parentUid = parentsMap[parentSet];
+			const parentEnt = this.objects[parentUid];
+			if (parentEnt.getAction() === 'create') {
+				ascendants.push(parentUid);
+				ascendants.push(...this.getAscendantUidsInCreationMode(parentUid));
+			}
+		}
+
+		return ascendants;		
+	}
+
+	/**
+	 * Syncs the context with the results of the requests
+	 * @param resultsMap A record with the results of the requests
+	 */
 	sync(resultsMap: Record<string, IObjectResult>) {
 
 		const uids: string[] = [];
@@ -236,6 +302,9 @@ export class RemoteContext {
 		this.emitStateChange('update', uids);
 	}
 
+	/**
+	 * Returns the uids of the objects that are not synced
+	 */
 	getUncommitedObjectsUids() {
 
 		const unsavedEnts: string[] = [];
@@ -249,6 +318,9 @@ export class RemoteContext {
 		return unsavedEnts;
 	}
 
+	/**
+	 * @returns True if all the objects in the context are synced
+	 */
 	isSynced() {
 
 		for (const uid in this.objects) {

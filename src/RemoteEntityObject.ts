@@ -1,4 +1,4 @@
-import type { RemoteContext, IObjectRequest, TAction, TKeysRecord, IObjectResult } from './RemoteContext';
+import type { RContext, IObjectRequest, TAction, TKeysRecord, IObjectResult } from './RContext';
 
 export class RemoteEntityObject<T> {
 
@@ -12,14 +12,14 @@ export class RemoteEntityObject<T> {
 
 
 	constructor(
-		private readonly ctx: RemoteContext,
+		private readonly ctx: RContext,
 		public readonly entitySet: string,
 		private action: TAction,
 		data: T | null,
 		localData?: Partial<T>
 	) {
 
-		this.localUid = this.ctx.getUid();
+		this.localUid = this.ctx.getNewUid();
 
 		this.action = action ?? null;
 		if (this.action === 'create') {
@@ -35,6 +35,7 @@ export class RemoteEntityObject<T> {
 	 * @returns The action to be performed on the object
 	 */
 	getAction() {
+
 		return this.action;
 	}
 
@@ -244,5 +245,4 @@ export class RemoteEntityObject<T> {
 		const keyVal = this.remoteData ? this.remoteData[keyProp] : null;
 		return keyVal;
 	}
-
 }

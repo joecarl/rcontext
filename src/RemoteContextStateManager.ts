@@ -1,4 +1,4 @@
-import type { TAction, IParentKey, RemoteContext, TSets, IObjectResult } from './RemoteContext';
+import type { TAction, IParentKey, RContext, TSets, IObjectResult } from './RContext';
 import type { RemoteEntityObject } from './RemoteEntityObject';
 import { getParentKey } from './utils';
 
@@ -41,7 +41,7 @@ export class RemoteContextStateManager {
 	private contextState: IRemoteContextState;
 
 
-	constructor(private readonly ctx: RemoteContext) {
+	constructor(private readonly ctx: RContext) {
 
 		this.contextState = {
 			sets: {},

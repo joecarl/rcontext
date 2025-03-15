@@ -1,9 +1,9 @@
 import { test, expect } from 'vitest';
-import { RemoteContext } from '../src/RemoteContext';
+import { RContext } from '../src/RContext';
 import { RemoteEntityObject } from '../src/RemoteEntityObject';
 
 function createContext() {
-	const ctx = new RemoteContext();
+	const ctx = new RContext();
 
 	// Indepedent entity set
 	ctx.addEntitySet({
@@ -274,3 +274,24 @@ test('editing an entity props updates the state', () => {
 	const ient1 = state.map[ent1.localUid];
 	expect(ient1.data.name).toBe('entidad1');
 });
+
+test('building a request for an entity whose parent is in creation mode also builds the parent request', () => {
+
+	const ctx = createContext();
+
+	const obj1 = { name: 'ent1' };
+	const ent1 = ctx.createObject('entitySet1', obj1);
+
+	const obj2 = { name: 'ent2' };
+	const ent2 = ctx.createObject('entitySet1', obj1);
+
+	const obj3 = { parentId: ent1.toRelationalKey(), name: 'ent3' };
+	const ent3 = ctx.createObject('entitySet2', obj3);
+
+	const reqs = ctx.buildRequestsForUids([ent3.localUid]);
+	
+	// The request dictionary must have 2 elements and specifically they must be ent1 and ent3
+	expect(Object.keys(reqs)).toHaveLength(2);
+	expect(reqs[ent1.localUid]).toBeTruthy();
+	expect(reqs[ent3.localUid]).toBeTruthy();
+});	

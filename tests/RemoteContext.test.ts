@@ -5,18 +5,32 @@ import { RemoteEntityObject } from '../src/RemoteEntityObject';
 function createContext() {
 	const ctx = new RemoteContext();
 
+	// Indepedent entity set
 	ctx.addEntitySet({
 		name: 'entitySet1',
 		keys: ['id'],
 		parentKeys: []
 	});
 
+	// Entity set whose parent is entitySet1
 	ctx.addEntitySet({
 		name: 'entitySet2',
 		keys: ['id'],
 		parentKeys: [
 			{
 				entitySet: 'entitySet1',
+				props: ['parentId']
+			}
+		]
+	});
+
+	// Entity set whose parent is itself
+	ctx.addEntitySet({
+		name: 'entitySet3',
+		keys: ['id'],
+		parentKeys: [
+			{
+				entitySet: 'entitySet3',
 				props: ['parentId']
 			}
 		]
@@ -76,6 +90,7 @@ test('removing related objects removes relationships in state', () => {
 	expect(parentUid).toBeFalsy();
 });
 
+
 test('adding related objects with missing parent does not create relationships in state', () => {
 
 	const ctx = createContext();
@@ -89,6 +104,7 @@ test('adding related objects with missing parent does not create relationships i
 	const parentUid = state.map[ent2.localUid].parentsMap.entitySet1;
 	expect(parentUid).toBeFalsy();
 });
+
 
 test('adding related objects in async events still creates relationships in state', async () => {
 
@@ -124,4 +140,22 @@ test('adding related objects in async events still creates relationships in stat
 	const parent = state.map[parentUid];
 	expect(parent).toBeTruthy();
 	expect(parent.data).toMatchObject({ ...obj1 });
+});
+
+
+test('adding entity with null parent key does not create relationships in state and does not store the entity as an orphan', () => {
+	
+	const ctx = createContext();
+
+	const obj = { id: 2, parentId: null, name: 'ent' };
+
+	const ent = ctx.trackObject('entitySet3', obj);
+
+	const state = ctx.getState();
+
+	const parentUid = state.map[ent.localUid].parentsMap.entitySet1;
+	expect(parentUid).toBeFalsy();
+
+	const orphans = ctx.getOrphanEntities();
+	expect(orphans).toHaveLength(0);
 });

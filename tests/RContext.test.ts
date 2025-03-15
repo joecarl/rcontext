@@ -7,25 +7,25 @@ function createContext() {
 
 	// Indepedent entity set
 	ctx.addEntitySet({
-		name: 'entitySet1',
+		name: 'set1_independant',
 		keys: ['id'],
 		parentKeys: []
 	});
 
 	// Indepedent entity set
 	ctx.addEntitySet({
-		name: 'entitySet1b',
+		name: 'set2_independant',
 		keys: ['id'],
 		parentKeys: []
 	});
 
-	// Entity set whose parent is entitySet1
+	// Entity set whose parent is set1_independant
 	ctx.addEntitySet({
-		name: 'entitySet2',
+		name: 'set3_dependsOn_set1',
 		keys: ['id'],
 		parentKeys: [
 			{
-				entitySet: 'entitySet1',
+				entitySet: 'set1_independant',
 				props: ['parentId']
 			}
 		]
@@ -33,11 +33,11 @@ function createContext() {
 
 	// Entity set whose parent is itself
 	ctx.addEntitySet({
-		name: 'entitySet3',
+		name: 'set4_dependsOn_itself',
 		keys: ['id'],
 		parentKeys: [
 			{
-				entitySet: 'entitySet3',
+				entitySet: 'set4_dependsOn_itself',
 				props: ['parentId']
 			}
 		]
@@ -45,15 +45,15 @@ function createContext() {
 
 	// Entity set with multiple parents
 	ctx.addEntitySet({
-		name: 'entitySet4',
+		name: 'set5_dependsOn_set1_and_set2',
 		keys: ['id'],
 		parentKeys: [
 			{
-				entitySet: 'entitySet1',
+				entitySet: 'set1_independant',
 				props: ['parentId']
 			},
 			{
-				entitySet: 'entitySet1b',
+				entitySet: 'set2_independant',
 				props: ['parentIdB']
 			}
 		]
@@ -66,29 +66,29 @@ function createContext() {
 test('adding related objects creates relationships in state', () => {
 
 	const ctx = createContext();
+	
+	const childObj = { id: 2, parentId: 1, name: 'ent2' };
+	const childEnt = ctx.trackObject('set3_dependsOn_set1', childObj);
 
-	const obj1 = { id: 1, name: 'ent1' };
-	const obj2 = { id: 2, parentId: 1, name: 'ent2' };
-
-	const ent2 = ctx.trackObject('entitySet2', obj2);
-	const ent1 = ctx.trackObject('entitySet1', obj1);
+	const parentObj = { id: 1, name: 'ent1' };
+	const parentEnt = ctx.trackObject('set1_independant', parentObj);
 
 	const state = ctx.getState();
 
-	const chSet = state.map[ent1.localUid].childrenSets['entitySet2'];
+	const chSet = state.map[parentEnt.localUid].childrenSets['set3_dependsOn_set1'];
 	expect(chSet).toBeTruthy();
 
 	const chUid = chSet[0];
-	expect(chUid).toBe(ent2.localUid);
+	expect(chUid).toBe(childEnt.localUid);
 	const ch = state.map[chUid];
 	expect(ch).toBeTruthy();
-	expect(ch.data).toMatchObject({ ...obj2 });
+	expect(ch.data).toMatchObject({ ...childObj });
 
-	const parentUid = state.map[ent2.localUid].parentsMap['entitySet1'];
-	expect(parentUid).toBe(ent1.localUid);
+	const parentUid = state.map[childEnt.localUid].parentsMap['set1_independant'];
+	expect(parentUid).toBe(parentEnt.localUid);
 	const parent = state.map[parentUid];
 	expect(parent).toBeTruthy();
-	expect(parent.data).toMatchObject({ ...obj1 });
+	expect(parent.data).toMatchObject({ ...parentObj });
 });
 
 
@@ -96,35 +96,20 @@ test('removing related objects removes relationships in state', () => {
 
 	const ctx = createContext();
 
-	const obj1 = { id: 1, name: 'ent1' };
-	const obj2 = { id: 2, parentId: 1, name: 'ent2' };
+	const childObj = { id: 2, parentId: 1, name: 'ent2' };
+	const childEnt = ctx.trackObject('set3_dependsOn_set1', childObj);
+	
+	const parentObj = { id: 1, name: 'ent1' };
+	const parentEnt = ctx.trackObject('set1_independant', parentObj);
 
-	const ent2 = ctx.trackObject('entitySet2', obj2);
-	const ent1 = ctx.trackObject('entitySet1', obj1);
-
-	ent1.removeImmediately();
+	parentEnt.removeImmediately();
 
 	const state = ctx.getState();
 
-	const ient1 = state.map[ent1.localUid];
+	const ient1 = state.map[parentEnt.localUid];
 	expect(ient1).toBeFalsy();
 
-	const parentUid = state.map[ent2.localUid].parentsMap['entitySet1'];
-	expect(parentUid).toBeFalsy();
-});
-
-
-test('adding related objects with missing parent does not create relationships in state', () => {
-
-	const ctx = createContext();
-
-	const obj2 = { id: 2, parentId: 1, name: 'ent2' };
-
-	const ent2 = ctx.trackObject('entitySet2', obj2);
-
-	const state = ctx.getState();
-
-	const parentUid = state.map[ent2.localUid].parentsMap['entitySet1'];
+	const parentUid = state.map[childEnt.localUid].parentsMap['set1_independant'];
 	expect(parentUid).toBeFalsy();
 });
 
@@ -132,37 +117,36 @@ test('adding related objects with missing parent does not create relationships i
 test('adding related objects in async events still creates relationships in state', async () => {
 
 	const ctx = createContext();
-
-	const obj1 = { id: 1, name: 'ent1' };
-	const obj2 = { id: 2, parentId: 1, name: 'ent2' };
-
-	const ent2 = ctx.trackObject('entitySet2', obj2);
-
-	const ent1 = await new Promise<RemoteEntityObject<any>>(resolve => {
+	
+	const childObj = { id: 2, parentId: 1, name: 'ent2' };
+	const childEnt = ctx.trackObject('set3_dependsOn_set1', childObj);
+	
+	const parentObj = { id: 1, name: 'ent1' };
+	const parentEnt = await new Promise<RemoteEntityObject<any>>(resolve => {
 		setTimeout(() => {
-			const ent1 = ctx.trackObject('entitySet1', obj1);
+			const ent1 = ctx.trackObject('set1_independant', parentObj);
 			resolve(ent1);
 		}, 200);
 	});
 
-	expect(ent1).toBeTruthy();
+	expect(parentEnt).toBeTruthy();
 
 	const state = ctx.getState();
 
-	const chSet = state.map[ent1.localUid].childrenSets['entitySet2'];
+	const chSet = state.map[parentEnt.localUid].childrenSets['set3_dependsOn_set1'];
 	expect(chSet).toBeTruthy();
 
 	const chUid = chSet[0];
-	expect(chUid).toBe(ent2.localUid);
+	expect(chUid).toBe(childEnt.localUid);
 	const ch = state.map[chUid];
 	expect(ch).toBeTruthy();
-	expect(ch.data).toMatchObject({ ...obj2 });
+	expect(ch.data).toMatchObject({ ...childObj });
 
-	const parentUid = state.map[ent2.localUid].parentsMap['entitySet1'];
-	expect(parentUid).toBe(ent1.localUid);
+	const parentUid = state.map[childEnt.localUid].parentsMap['set1_independant'];
+	expect(parentUid).toBe(parentEnt.localUid);
 	const parent = state.map[parentUid];
 	expect(parent).toBeTruthy();
-	expect(parent.data).toMatchObject({ ...obj1 });
+	expect(parent.data).toMatchObject({ ...parentObj });
 });
 
 
@@ -171,12 +155,11 @@ test('adding entity with null parent key does not create relationships in state 
 	const ctx = createContext();
 
 	const obj = { id: 2, parentId: null, name: 'ent' };
-
-	const ent = ctx.trackObject('entitySet3', obj);
+	const ent = ctx.trackObject('set4_dependsOn_itself', obj);
 
 	const state = ctx.getState();
 
-	const parentUid = state.map[ent.localUid].parentsMap['entitySet1'];
+	const parentUid = state.map[ent.localUid].parentsMap['set1_independant'];
 	expect(parentUid).toBeFalsy();
 
 	const orphans = ctx.getOrphanEntities();
@@ -184,77 +167,85 @@ test('adding entity with null parent key does not create relationships in state 
 });
 
 
-test('adding entity with defined parent key but missing parent does not create relationships in state and stores it as an orphan', () => {
+test('adding related objects with missing parent does not create relationships in state and stores it as an orphan', () => {
 
 	const ctx = createContext();
 
-	const obj = { id: 2, parentId: 1, name: 'ent' };
-
-	const ent = ctx.trackObject('entitySet3', obj);
+	const orphanObj = { id: 2, parentId: 1, name: 'ent2' };
+	const orphanEnt = ctx.trackObject('set3_dependsOn_set1', orphanObj);
 
 	const state = ctx.getState();
 
-	const parentUid = state.map[ent.localUid].parentsMap['entitySet1'];
+	const parentUid = state.map[orphanEnt.localUid].parentsMap['set1_independant'];
 	expect(parentUid).toBeFalsy();
 
 	const orphans = ctx.getOrphanEntities();
 	expect(orphans).toHaveLength(1);
-	expect(orphans[0]).toMatchObject(ent);
+	expect(orphans[0]).toMatchObject(orphanEnt);
 });
+
 
 test('adding one of the missing parents of an orphan entity with multiple parents creates the relationship but keeps it in the orphan list', () => {
 
 	const ctx = createContext();
 
-	const obj1 = { id: 1, name: 'ent1' };
-	const obj2 = { id: 2, parentId: 1, parentIdB: 1, name: 'ent2' };
-
-	const ent2 = ctx.trackObject('entitySet4', obj2);
-
+	const childObj = { id: 2, parentId: 1, parentIdB: 1, name: 'ent2' };
+	const childEnt = ctx.trackObject('set5_dependsOn_set1_and_set2', childObj);
+	
 	const orphans = ctx.getOrphanEntities();
 	expect(orphans).toHaveLength(1);
-	expect(orphans[0]).toMatchObject(ent2);
+	expect(orphans[0]).toMatchObject(childEnt);
+	
+	const parentObj = { id: 1, name: 'ent1' };
+	const parentEnt = ctx.trackObject('set1_independant', parentObj);
 
-	const ent1 = ctx.trackObject('entitySet1', obj1);
 	const state = ctx.getState();
 
-	const parentUid = state.map[ent2.localUid].parentsMap['entitySet1'];
-	expect(parentUid).toBe(ent1.localUid);
+	const parentUid = state.map[childEnt.localUid].parentsMap['set1_independant'];
+	expect(parentUid).toBe(parentEnt.localUid);
 
 	const orphans2 = ctx.getOrphanEntities();
 	expect(orphans2).toHaveLength(1);
-	expect(orphans2[0]).toMatchObject(ent2);
+	expect(orphans2[0]).toMatchObject(childEnt);
 });
 
 
 test('adding both missing parents of an orphan entity with multiple parents creates the relationship and removes it from the orphan list', () => {
 
 	const ctx = createContext();
-
-	const obj1 = { id: 1, name: 'ent1' };
-	const obj1b = { id: 1, name: 'ent1b' };
-	const obj2 = { id: 2, parentId: 1, parentIdB: 1, name: 'ent2' };
-
-	const ent2 = ctx.trackObject('entitySet4', obj2);
-
+	
+	const childObj = { id: 2, parentId: 1, parentIdB: 1, name: 'ent2' };
+	const childEnt = ctx.trackObject('set5_dependsOn_set1_and_set2', childObj);
+	
 	const orphans = ctx.getOrphanEntities();
 	expect(orphans).toHaveLength(1);
-	expect(orphans[0]).toMatchObject(ent2);
-
-	const ent1 = ctx.trackObject('entitySet1', obj1);
+	expect(orphans[0]).toMatchObject(childEnt);
+	
+	const parentObj1 = { id: 1, name: 'ent1' };
+	const parentEnt1 = ctx.trackObject('set1_independant', parentObj1);
 	
 	const orphans2 = ctx.getOrphanEntities();
 	expect(orphans2).toHaveLength(1);
-	expect(orphans2[0]).toMatchObject(ent2);
+	expect(orphans2[0]).toMatchObject(childEnt);
+	
+	const parentObj2 = { id: 1, name: 'ent1b' };
+	const parentEnt2 = ctx.trackObject('set2_independant', parentObj2);
 
-	const ent1b = ctx.trackObject('entitySet1b', obj1b);
 	const state = ctx.getState();
 
-	const parentUid = state.map[ent2.localUid].parentsMap['entitySet1'];
-	expect(parentUid).toBe(ent1.localUid);
-	const parentUidB = state.map[ent2.localUid].parentsMap['entitySet1b'];
-	expect(parentUidB).toBe(ent1b.localUid);
+	// Check parents map
+	const parentUid = state.map[childEnt.localUid].parentsMap['set1_independant'];
+	expect(parentUid).toBe(parentEnt1.localUid);
+	const parentUidB = state.map[childEnt.localUid].parentsMap['set2_independant'];
+	expect(parentUidB).toBe(parentEnt2.localUid);
 
+	// Check children set
+	const chSet = state.map[parentEnt1.localUid].childrenSets['set5_dependsOn_set1_and_set2'];
+	expect(chSet).toBeTruthy();
+	expect(chSet).toHaveLength(1);
+	expect(chSet[0]).toBe(childEnt.localUid);
+
+	// Check orphans
 	const orphans3 = ctx.getOrphanEntities();
 	expect(orphans3).toHaveLength(0);
 });
@@ -264,34 +255,35 @@ test('editing an entity props updates the state', () => {
 
 	const ctx = createContext();
 
-	const obj1 = { id: 1, name: 'ent1' };
-	const ent1 = ctx.trackObject('entitySet1', obj1);
+	const obj = { id: 1, name: 'ent1' };
+	const ent = ctx.trackObject('set1_independant', obj);
 
-	ent1.edit({ name: 'entidad1' });
+	ent.edit({ name: 'entidad1' });
 
 	const state = ctx.getState();
 
-	const ient1 = state.map[ent1.localUid];
-	expect(ient1.data.name).toBe('entidad1');
+	const ient = state.map[ent.localUid];
+	expect(ient.data.name).toBe('entidad1');
 });
+
 
 test('building a request for an entity whose parent is in creation mode also builds the parent request', () => {
 
 	const ctx = createContext();
 
-	const obj1 = { name: 'ent1' };
-	const ent1 = ctx.createObject('entitySet1', obj1);
+	const parentObj = { name: 'ent1' };
+	const parentEnt = ctx.createObject('set1_independant', parentObj);
 
-	const obj2 = { name: 'ent2' };
-	const ent2 = ctx.createObject('entitySet1', obj1);
+	const otherObj = { name: 'ent2' };
+	const otherEnt = ctx.createObject('set1_independant', parentObj);
 
-	const obj3 = { parentId: ent1.toRelationalKey(), name: 'ent3' };
-	const ent3 = ctx.createObject('entitySet2', obj3);
+	const childObj = { parentId: parentEnt.toRelationalKey(), name: 'ent3' };
+	const childEnt = ctx.createObject('set3_dependsOn_set1', childObj);
 
-	const reqs = ctx.buildRequestsForUids([ent3.localUid]);
+	const reqs = ctx.buildRequestsForUids([childEnt.localUid]);
 	
 	// The request dictionary must have 2 elements and specifically they must be ent1 and ent3
 	expect(Object.keys(reqs)).toHaveLength(2);
-	expect(reqs[ent1.localUid]).toBeTruthy();
-	expect(reqs[ent3.localUid]).toBeTruthy();
+	expect(reqs[parentEnt.localUid]).toBeTruthy();
+	expect(reqs[childEnt.localUid]).toBeTruthy();
 });	

@@ -4,7 +4,7 @@ RContext stands for Remote, Reactive, Real-time, and Reliable context management
 
 ## Relationships
 
-Entity relationships are automatically determined based on the provided set definitions. The main rule is that an entity can have multiple children within each entity set but only one parent per set.
+Entity relationships are automatically determined based on the provided set definitions. The main rule is that an entity can have **multiple children within each entity set** but **only one parent per set**.
 
 When child entities are added to the context, their relationships with their parents are stored in the state. This state keeps track of relationships in both directions, allowing quick access to an entity’s parents or children.
 

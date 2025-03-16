@@ -52,16 +52,16 @@ export class RContextStateReader {
 
 	/**
 	 * Find an entity by its key values or uid
-	 * @param entitySet The entity set name
+	 * @param setName The entity set name
 	 * @param id It can be either the uid or the key values of the entity, if 
 	 * the entity has only one key, it can be a string or a number. If the 
 	 * entity has multiple keys, it must be an object with the key values pairs
 	 * @returns The entity if found, otherwise null
 	 */
-	findEntity<T = any>(entitySet: string, id: string | number | TKeysRecord) {
+	findEntity<T = any>(setName: string, id: string | number | TKeysRecord) {
 
 		const state = this.state;
-		const setDef = this.context.getSetDefinition(entitySet);
+		const setDef = this.context.getSetDefinition(setName);
 		if (setDef.keys.length === 0) return null;
 
 		if (typeof id === 'string') {
@@ -72,7 +72,10 @@ export class RContextStateReader {
 			id = buildObjectKey(id, setDef.keys);
 		}
 
-		for (const uid of state.sets[entitySet]) {
+		const set = state.sets[setName];
+		if (!set) return null;
+
+		for (const uid of set) {
 			const iEnt = state.map[uid];
 			const iEntKey = buildObjectKey(iEnt.data, setDef.keys);
 

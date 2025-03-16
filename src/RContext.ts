@@ -1,7 +1,8 @@
-import type { IRemoteContextState, TStateChangeType } from './RemoteContextStateManager';
+import type { IRemoteContextState, TStateChangeType } from './RContextStateBuilder';
 import { RemoteEntityObject } from './RemoteEntityObject';
-import { RemoteContextStateManager } from './RemoteContextStateManager';
+import { RContextStateBuilder } from './RContextStateBuilder';
 import { buildObjectKey } from './utils';
+import { RContextStateReader } from './RContextStateReader';
 
 export type TSets = Record<string, string[]>;
 
@@ -47,7 +48,7 @@ export class RContext {
 
 	private static readonly uidPrefix = '~uid~';
 
-	private readonly stateManager: RemoteContextStateManager;
+	private readonly stateManager: RContextStateBuilder;
 
 	private uidIndex: number = 1;
 
@@ -62,7 +63,7 @@ export class RContext {
 
 	constructor() {
 
-		this.stateManager = new RemoteContextStateManager(this);
+		this.stateManager = new RContextStateBuilder(this);
 	}
 
 	addEntitySet(setDefinition: ISetDefinition) {
@@ -141,6 +142,11 @@ export class RContext {
 		return this.stateManager.getState();
 	}
 
+	createStateReader(state: IRemoteContextState) {
+
+		return new RContextStateReader(this, state);
+	}
+
 	getOrphanEntities() {
 
 		return this.stateManager.getOrphanEntities();
@@ -157,7 +163,7 @@ export class RContext {
 		return this.setsDefinitions[setName];
 	}
 
-	findEntity(entitySet: string, keyValues: any) {
+	findEntity(entitySet: string, keyValues: Record<string, any>) {
 
 		const setDef = this.setsDefinitions[entitySet];
 		if (setDef.keys.length === 0) return null;
@@ -180,11 +186,16 @@ export class RContext {
 		return null;
 	}
 
+	/**
+	 * This function is designed for internal use only. It is used to find the uid of an entity
+	 * @param entitySet 
+	 * @param id 
+	 * @returns 
+	 */
 	findEntityUid(entitySet: string, id: string | number) {
 
 		id = id.toString();
-		const isLocalUid = id.indexOf(RContext.uidPrefix) === 0;
-		if (isLocalUid) return this.objects[id] ? id : null;
+		if (this.isUid(id)) return this.objects[id] ? id : null;
 
 		const setDef = this.setsDefinitions[entitySet];
 		if (setDef.keys.length === 0) return null;
@@ -336,5 +347,13 @@ export class RContext {
 		}
 
 		return true;
+	}
+
+	/**
+	 * @returns True if the provided uid is a local uid
+	 */
+	isUid(uid: string) {
+		
+		return uid.indexOf(RContext.uidPrefix) === 0;
 	}
 }

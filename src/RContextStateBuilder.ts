@@ -6,21 +6,27 @@ import { getParentKey } from './utils';
  * Represents the state of the context
  */
 export interface IRemoteContextState {
-	sets: TSets;
-	map: Record<string, IEnt<any>>;
+	readonly sets: TSets;
+	readonly map: Record<string, IEnt<any>>;
 }
 
 /**
  * Represents the state of a single entity in the context
  */
-export interface IEnt<T> {
-	entity: RemoteEntityObject<T>;
-	action: TAction;
-	data: T;
-	childrenSets: TSets;
-	parentsMap: Record<string, string>;
-	syncResult: IObjectResult<T> | null;
+export interface IEntityState<T> {
+	readonly uid: string;
+	readonly entity: RemoteEntityObject<T>;
+	readonly action: TAction;
+	readonly data: T;
+	readonly childrenSets: TSets;
+	readonly parentsMap: Record<string, string>;
+	readonly syncResult: IObjectResult<T> | null;
 }
+
+/**
+ * Alias to keep retrocompatibility with the previous version of the library
+ */
+export type IEnt<T> = IEntityState<T>;
 
 /**
  * Represents the type of change that must be applied to the state
@@ -28,7 +34,7 @@ export interface IEnt<T> {
 export type TStateChangeType = 'add' | 'remove' | 'update';
 
 
-export class RemoteContextStateManager {
+export class RContextStateBuilder {
 
 	/**
 	 * List of entities with defined parent keys which point to non-existent parent entities
@@ -251,7 +257,7 @@ export class RemoteContextStateManager {
 					newState.sets[entitySet] = [];
 				}
 				newState.sets[entitySet].push(uid);
-				newState.map[uid] = RemoteContextStateManager.buildEntityState(ent);
+				newState.map[uid] = RContextStateBuilder.buildEntityState(ent);
 
 			} else if (changeType === 'remove') {
 
@@ -261,7 +267,7 @@ export class RemoteContextStateManager {
 			} else if (changeType === 'update') {
 
 				newState.map[uid] = {
-					...RemoteContextStateManager.buildEntityState(ent),
+					...RContextStateBuilder.buildEntityState(ent),
 					childrenSets: newState.map[uid].childrenSets,
 					parentsMap: newState.map[uid].parentsMap,
 				};
@@ -292,6 +298,7 @@ export class RemoteContextStateManager {
 	private static buildEntityState(ent: RemoteEntityObject<any>): IEnt<any> {
 
 		return {
+			uid: ent.localUid,
 			action: ent.getAction(),
 			childrenSets: {},
 			parentsMap: {},

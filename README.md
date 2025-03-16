@@ -53,16 +53,16 @@ const ent2 = ctx.trackObject('mySet2', { id: 5, parentId: 1, name: 'My entity 2'
 const state = ctx.getState();
 
 // Managing state directly might be a bit tedious; better use this helper class
-const stateHelper = new RContextStateHelper(state);
+const stateReader = ctx.createStateReader(state); // Creates a new instance of RContextStateReader
 
 // Get children of ent1 whose entitySet is 'mySet2'
-const children = stateHelper.getChildren(ent1, 'mySet2'); 
+const children = stateReader.getChildren(ent1, 'mySet2'); 
 
 // Get the parent of ent2 whose entitySet is 'mySet1'
-const parent = stateHelper.getParent(ent2, 'mySet1'); 
+const parent = stateReader.getParent(ent2, 'mySet1'); 
 ```
 
-Please note that the methods in `RContextStateHelper` never return pure entities. Instead, they return immutable state objects, which include a reference to the corresponding pure entity for convenience.
+Please note that the methods in `RContextStateReader` never return pure entities. Instead, they return immutable state objects, which include a reference to the corresponding pure entity for convenience.
 
 ### Use it in your reactive app
 

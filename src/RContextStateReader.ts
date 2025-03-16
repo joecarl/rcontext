@@ -53,9 +53,9 @@ export class RContextStateReader {
 	/**
 	 * Find an entity by its key values or uid
 	 * @param entitySet The entity set name
-	 * @param id It can be either a uid or the key values of the entity, if the
-	 * entity has only one key, it can be a string or a number. If the entity
-	 * has multiple keys, it must be an object with the key values pairs
+	 * @param id It can be either the uid or the key values of the entity, if 
+	 * the entity has only one key, it can be a string or a number. If the 
+	 * entity has multiple keys, it must be an object with the key values pairs
 	 * @returns The entity if found, otherwise null
 	 */
 	findEntity<T = any>(entitySet: string, id: string | number | TKeysRecord) {

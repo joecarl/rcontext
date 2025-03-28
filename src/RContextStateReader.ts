@@ -76,7 +76,7 @@ export class RContextStateReader {
 		if (!set) return null;
 
 		for (const uid of set) {
-			const iEnt = state.map[uid];
+			const iEnt = state.map[uid];			
 			const iEntKey = buildObjectKey(iEnt.data, setDef.keys);
 
 			if (iEntKey !== id) continue;

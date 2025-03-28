@@ -256,7 +256,7 @@ export class RContextStateBuilder {
 				if (newState.sets[entitySet] === undefined) {
 					newState.sets[entitySet] = [];
 				}
-				newState.sets[entitySet].push(uid);
+				newState.sets[entitySet] = [...newState.sets[entitySet], uid];
 				newState.map[uid] = RContextStateBuilder.buildEntityState(ent);
 
 			} else if (changeType === 'remove') {

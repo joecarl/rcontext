@@ -191,7 +191,6 @@ export class RContextStateBuilder {
 
 		const setName = ent.entitySet;
 		const setDef = this.ctx.getSetDefinition(setName);
-		let success = true;
 
 		const parentKeys = changeType === 'update' ? this.getUpdatedParentKeys(newState, ent) : setDef.parentKeys;
 
@@ -201,13 +200,13 @@ export class RContextStateBuilder {
 				this.removeFromChildrenSet(newState, ent, parentKey);
 			}
 			if (changeType === 'add' || changeType === 'update') {
-				const result = this.addToChildrenSet(newState, ent, parentKey);
-				if (!result) success = false;
+				this.addToChildrenSet(newState, ent, parentKey);
 			}
 		}
 
+		const noLongerOrphan = this.allRelationshipsStablished(newState, ent);
 		const idx = this.orphanEntities.indexOf(ent);
-		if (success) {
+		if (noLongerOrphan) {
 			if (idx !== -1) this.orphanEntities.splice(idx, 1);
 		} else {
 			if (idx === -1) this.orphanEntities.push(ent);
@@ -232,6 +231,28 @@ export class RContextStateBuilder {
 				}
 			}
 		}
+	}
+
+	private allRelationshipsStablished(newState: IRemoteContextState, ent: RemoteEntityObject<any>) {
+
+		const setName = ent.entitySet;
+		const setDef = this.ctx.getSetDefinition(setName);
+		const parentKeys = setDef.parentKeys;
+
+		const ient = newState.map[ent.localUid];
+
+		for (const parentKey of parentKeys) {
+			const pKeyValue = getParentKey(ient.data, parentKey);
+			if (pKeyValue === null) continue;
+			const pUid = ient.parentsMap[parentKey.entitySet];
+			if (!pUid) return false;
+			const iParentEnt = newState.map[pUid];
+			if (!iParentEnt) return false;
+			const childrenSet = iParentEnt.childrenSets[setName] ?? [];
+			if (childrenSet.indexOf(ent.localUid) === -1) return false;
+		}
+
+		return true;
 	}
 
 	/**
@@ -274,10 +295,11 @@ export class RContextStateBuilder {
 			}
 
 			this.updateStateHierarchy(newState, ent, changeType);
-			[...this.orphanEntities].forEach(orphanEnt => {
-				this.updateStateHierarchy(newState, orphanEnt, 'add');
-			});
 		}
+
+		[...this.orphanEntities].forEach(orphanEnt => {
+			this.updateStateHierarchy(newState, orphanEnt, 'add');
+		});
 
 		this.contextState = newState;
 		return this.contextState;

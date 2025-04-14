@@ -250,3 +250,30 @@ test('onContextChange event is triggered only once after multiple synchronous ch
 
 	expect(eventCount).toBe(1);
 });
+
+
+test('adding the same entity twice and then adding the parent entity does not cause any problem when creating the corresponding relationships', () => {
+
+	const ctx = createContext();
+
+	const childObj = { id: 2, parentId: 1, name: 'ent2' };
+	const childEntT1 = ctx.trackObject('set3_dependsOn_set1', childObj);
+	const childEntT2 = ctx.trackObject('set3_dependsOn_set1', childObj);
+
+	expect(childEntT1).toBe(childEntT2);
+
+	const orphans = ctx.getOrphanEntities();
+	expect(orphans).toHaveLength(1);
+	expect(orphans[0]).toMatchObject(childEntT1);
+
+	const parentObj = { id: 1, name: 'ent1' };
+	const parentEnt = ctx.trackObject('set1_independant', parentObj);
+
+	const state = ctx.getState();
+
+	const parentUid = state.map[childEntT1.localUid].parentsMap['set1_independant'];
+	expect(parentUid).toBe(parentEnt.localUid);
+
+	const orphans2 = ctx.getOrphanEntities();
+	expect(orphans2).toHaveLength(0);
+});

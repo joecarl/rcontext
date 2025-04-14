@@ -17,6 +17,10 @@ export function buildObjectKey(obj: any, keyArr: string[]): number | string | nu
 		}
 		return obj[prop];
 	});
+	
+	if (kvArr.every(v => v === null)) {
+		return null;
+	}
 
 	return JSON.stringify(kvArr);
 }

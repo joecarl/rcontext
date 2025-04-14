@@ -128,7 +128,7 @@ export class RContext {
 	emitStateChange(changeType: TStateChangeType, affectedUids: string[]) {
 
 		const newState = this.stateManager.emitChange(changeType, affectedUids);
-		
+
 		if (typeof this.onContextChange !== 'function') return;
 
 		clearTimeout(this.triggerStateChangeTimeout);
@@ -149,7 +149,7 @@ export class RContext {
 
 	getOrphanEntities() {
 
-		return this.stateManager.getOrphanEntities();
+		return [...this.stateManager.getOrphanEntities()];
 	}
 
 	removeObject(localUid: string) {
@@ -353,7 +353,7 @@ export class RContext {
 	 * @returns True if the provided uid is a local uid
 	 */
 	isUid(uid: string) {
-		
+
 		return uid.indexOf(RContext.uidPrefix) === 0;
 	}
 }

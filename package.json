@@ -1,6 +1,6 @@
 {
 	"name": "rcontext",
-	"version": "0.4.3",
+	"version": "0.4.4",
 	"description": "A JavaScript library for managing entity relationships, handling CRUD operations, syncing with a server, and emitting real-time state updates to maintain a reactive and consistent frontend state.",
 	"author": "José Carlos HR <joecarlhr@gmail.com>",
 	"license": "MIT",

@@ -277,3 +277,19 @@ test('adding the same entity twice and then adding the parent entity does not ca
 	const orphans2 = ctx.getOrphanEntities();
 	expect(orphans2).toHaveLength(0);
 });
+
+test('removing immediately an orphan entity also removes it form the orphans list', () => {
+
+	const ctx = createContext();
+
+	const childObj = { id: 2, parentId: 1, name: 'ent1' };
+	const childEnt = ctx.trackObject('set3_dependsOn_set1', childObj);
+
+	const orphans = ctx.getOrphanEntities();
+	expect(orphans).toHaveLength(1);
+
+	childEnt.removeImmediately();
+
+	const orphans2 = ctx.getOrphanEntities();
+	expect(orphans2).toHaveLength(0);
+});

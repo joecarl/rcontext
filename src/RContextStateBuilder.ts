@@ -204,7 +204,7 @@ export class RContextStateBuilder {
 			}
 		}
 
-		const noLongerOrphan = this.allRelationshipsStablished(newState, ent);
+		const noLongerOrphan = changeType === 'remove' || this.allRelationshipsStablished(newState, ent);
 		const idx = this.orphanEntities.indexOf(ent);
 		if (noLongerOrphan) {
 			if (idx !== -1) this.orphanEntities.splice(idx, 1);

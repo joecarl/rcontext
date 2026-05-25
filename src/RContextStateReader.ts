@@ -19,26 +19,26 @@ export class RContextStateReader {
 		const state = this.state;
 		const childrenUids = parentEnt.childrenSets[chSet.name];
 		if (!childrenUids) return [];
-		const children = childrenUids.map((uid) => state.map[uid] as IEnt<any>);
+		const children = childrenUids.map((uid) => state.map[uid]);
 		return children;
 	}
 
-	getParent<T>(childEnt: IEnt<any>, parentSet: EntitySet<T>) {
+	getParent<T>(childEnt: IEnt<any>, parentSet: EntitySet<T>): IEnt<T> | null {
 
 		const state = this.state;
 		const parentUid = childEnt.parentsMap[parentSet.name];
 		if (!parentUid) return null;
-		const parent = state.map[parentUid] as IEnt<any>;
+		const parent = state.map[parentUid];
 		return parent;
 	}
 
-	getEntities<T>(setName: EntitySet<T>) {
+	getEntities<T>(entitySet: EntitySet<T>): IEnt<T>[] {
 
 		const state = this.state;
-		const uids = state.sets[setName.name];
+		const uids = state.sets[entitySet.name];
 		if (!uids) return [];
 		const ents = uids
-			.map((uid) => state.map[uid] as IEnt<any>)
+			.map((uid) => state.map[uid])
 			.filter((e) => e !== undefined);
 		return ents;
 	}
@@ -47,27 +47,27 @@ export class RContextStateReader {
 
 		const state = this.state;
 		if (!uid) return null;
-		const ent = state.map[uid] as IEnt<T>;
+		const ent = state.map[uid];
 		return ent;
 	}
 
 	/**
 	 * Find an entity by its key values or uid
-	 * @param setName The entity set name
+	 * @param entitySet The entity set instance
 	 * @param id It can be either the uid or the key values of the entity, if 
 	 * the entity has only one key, it can be a string or a number. If the 
 	 * entity has multiple keys, it must be an object with the key values pairs
 	 * @returns The entity if found, otherwise null
 	 */
-	findEntity<T>(setName: EntitySet<T>, id: string | number | EntityKeysRecord): IEnt<T> | null {
+	findEntity<T>(entitySet: EntitySet<T>, id: string | number | EntityKeysRecord): IEnt<T> | null {
 
 		const state = this.state;
-		const setDef = this.context.getSetDefinition(setName.name);
+		const setDef = this.context.getSetDefinition(entitySet.name);
 		if (setDef.keys.length === 0) return null;
 
 		if (typeof id === 'string') {
 			const isUid = id in state.map;
-			if (isUid) return state.map[id] as IEnt<any>;
+			if (isUid) return state.map[id];
 		}
 		else if (typeof id === 'object') {
 			const key = buildObjectKey(id, setDef.keys);
@@ -75,7 +75,7 @@ export class RContextStateReader {
 			id = key;
 		}
 
-		const set = state.sets[setName.name];
+		const set = state.sets[entitySet.name];
 		if (!set) return null;
 
 		for (const uid of set) {
@@ -84,7 +84,7 @@ export class RContextStateReader {
 
 			if (iEntKey !== id) continue;
 
-			return iEnt as IEnt<any>;
+			return iEnt;
 		}
 
 		return null;

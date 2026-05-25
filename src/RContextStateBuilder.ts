@@ -316,14 +316,14 @@ export class RContextStateBuilder {
 	}
 
 
-	private static buildEntityState(ent: RemoteEntityObject<any>): IEnt<any> {
+	private static buildEntityState<T>(ent: RemoteEntityObject<T>): IEnt<T> {
 
 		return {
 			uid: ent.localUid,
 			action: ent.getAction(),
 			childrenSets: {},
 			parentsMap: {},
-			data: ent.getData(),
+			data: ent.getData() as T,
 			entity: ent,
 			syncResult: ent.getSyncResult(),
 		};

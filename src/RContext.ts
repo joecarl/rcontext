@@ -26,7 +26,7 @@ export interface IObjectRequest<T = any> {
 	keys: EntityKeysRecord | null;
 }
 
-export interface IParentKey<TParent=any, TChild=any> {
+export interface IParentKey<TParent = any, TChild = any> {
 	/**
 	 * The order must be the same as the order of keys specified in the parent entitySet
 	 */

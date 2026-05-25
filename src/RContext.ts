@@ -1,14 +1,15 @@
-import type { IRemoteContextState, TStateChangeType } from './RContextStateBuilder';
+import type { IRemoteContextState, StateChangeType } from './RContextStateBuilder';
 import { RemoteEntityObject } from './RemoteEntityObject';
 import { RContextStateBuilder } from './RContextStateBuilder';
 import { buildObjectKey } from './utils';
 import { RContextStateReader } from './RContextStateReader';
+import { EntitySet } from './EntitySet';
 
-export type TSets = Record<string, string[]>;
+export type EntitySets = Record<string, string[]>;
 
-export type TAction = 'create' | 'read' | 'update' | 'delete';
+export type EntityAction = 'create' | 'read' | 'update' | 'delete';
 
-export type TKeysRecord = Record<string, string | number>;
+export type EntityKeysRecord = Record<string, string | number>;
 
 export interface IObjectResult<T = any> {
 	success: boolean;
@@ -20,27 +21,21 @@ export interface IObjectResult<T = any> {
 export interface IObjectRequest<T = any> {
 	entitySet: string;
 	remoteUid: string;
-	action: TAction;
+	action: EntityAction;
 	newData: T;
-	keys: TKeysRecord | null;
+	keys: EntityKeysRecord | null;
 }
 
-export interface IParentKey {
+export interface IParentKey<TParent=any, TChild=any> {
 	/**
 	 * The order must be the same as the order of keys specified in the parent entitySet
 	 */
-	props: string[];
+	props: (keyof TChild & string)[];
 
 	/**
-	 * The name of the parent entitySet
+	 * The parent entitySet instance
 	 */
-	entitySet: string;
-}
-
-interface ISetDefinition {
-	name: string;
-	keys: string[];
-	parentKeys: IParentKey[];
+	entitySet: EntitySet<TParent>;
 }
 
 
@@ -52,13 +47,15 @@ export class RContext {
 
 	private uidIndex: number = 1;
 
+	private setNameIndex: number = 0;
+
 	private objects: Record<string, RemoteEntityObject<any>> = {};
 
-	private setsDefinitions: Record<string, ISetDefinition> = {};
+	private setsDefinitions: Record<string, EntitySet<any>> = {};
 
 	private triggerStateChangeTimeout: any;
 
-	public onContextChange: (newState: IRemoteContextState) => void;
+	public onContextChange: (newState: IRemoteContextState) => void = () => { };
 
 
 	constructor() {
@@ -66,51 +63,35 @@ export class RContext {
 		this.stateManager = new RContextStateBuilder(this);
 	}
 
-	addEntitySet(setDefinition: ISetDefinition) {
+	addEntitySet<T = any>(def: {
+		name?: string;
+		keys: (keyof T & string)[];
+		parentKeys?: IParentKey<any, T>[];
+	}): EntitySet<T> {
 
-		const setName = setDefinition.name;
-		this.setsDefinitions[setName] = setDefinition;
+		const name = def.name ?? `EntitySet_${++this.setNameIndex}`;
+		const set = new EntitySet<T>(
+			this,
+			name,
+			def.keys as string[],
+			(def.parentKeys ?? []) ,
+		);
+		this.setsDefinitions[name] = set;
+		return set;
 	}
 
-	private validateEntitySet(entitySetName: string) {
-
-		if (this.setsDefinitions[entitySetName] === undefined) {
-			throw new Error('Entity set ' + entitySetName + ' is not registered. Did you forget to call addEntitySet?');
-		}
-	}
-
-	private registerObject(ent: RemoteEntityObject<any>) {
+	/** @internal */
+	registerObject(ent: RemoteEntityObject<any>) {
 
 		this.objects[ent.localUid] = ent;
 		this.emitStateChange('add', [ent.localUid]);
-	}
-
-	createObject<T>(entitySet: string, obj: Partial<T>) {
-
-		this.validateEntitySet(entitySet);
-		const ent = new RemoteEntityObject<T>(this, entitySet, 'create', null, obj);
-		this.registerObject(ent);
-		return ent;
-	}
-
-	trackObject<T>(entitySet: string, obj: T) {
-
-		this.validateEntitySet(entitySet);
-		const existingEnt = this.findEntity(entitySet, obj);
-		if (existingEnt) {
-			existingEnt.updateRemoteData(obj);
-			return existingEnt;
-		}
-		const ent = new RemoteEntityObject<T>(this, entitySet, 'read', obj);
-		this.registerObject(ent);
-		return ent;
 	}
 
 	getObject(uid: string) {
 		return this.objects[uid];
 	}
 
-	getSetDefinition(setName: string) {
+	getSetDefinition(setName: string): EntitySet<any> {
 		return this.setsDefinitions[setName];
 	}
 
@@ -125,7 +106,7 @@ export class RContext {
 	 * @param changeType 'add' if the objects must be added, 'update' if the objects must be updated, 'remove' if the objects must be removed
 	 * @param affectedUids the uids of the objects that are affected by the change
 	 */
-	emitStateChange(changeType: TStateChangeType, affectedUids: string[]) {
+	emitStateChange(changeType: StateChangeType, affectedUids: string[]) {
 
 		const newState = this.stateManager.emitChange(changeType, affectedUids);
 
@@ -154,36 +135,10 @@ export class RContext {
 
 	removeObject(localUid: string) {
 
+		const ent = this.objects[localUid];
+		if (ent) this.setsDefinitions[ent.entitySetName]?.unregisterObject(localUid);
 		this.emitStateChange('remove', [localUid]);
 		delete this.objects[localUid];
-	}
-
-	getEntitySetDefinition(setName: string): ISetDefinition {
-
-		return this.setsDefinitions[setName];
-	}
-
-	findEntity(entitySet: string, keyValues: Record<string, any>) {
-
-		const setDef = this.setsDefinitions[entitySet];
-		if (setDef.keys.length === 0) return null;
-
-		for (const uid in this.objects) {
-			const iEnt = this.objects[uid];
-			if (iEnt.entitySet !== entitySet) continue;
-			const entData = iEnt.getData();
-			let matches = true;
-			for (const key of setDef.keys) {
-				if (keyValues[key] !== entData[key]) {
-					matches = false;
-					break;
-				}
-			}
-			if (!matches) continue;
-			return iEnt;
-		}
-
-		return null;
 	}
 
 	/**
@@ -202,10 +157,10 @@ export class RContext {
 
 		for (const uid in this.objects) {
 			const iEnt = this.objects[uid];
-			if (iEnt.entitySet !== entitySet) continue;
+			if (iEnt.entitySetName !== entitySet) continue;
 			const iEntKey = buildObjectKey(iEnt.getData(), setDef.keys);
 
-			if (iEntKey.toString() !== id) continue;
+			if (iEntKey === null || iEntKey.toString() !== id) continue;
 			return uid;
 		}
 

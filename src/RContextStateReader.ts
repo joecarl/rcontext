@@ -1,6 +1,7 @@
-import { RContext, TKeysRecord } from './RContext';
+import { RContext, EntityKeysRecord } from './RContext';
 import { IEnt, IRemoteContextState } from './RContextStateBuilder';
 import { buildObjectKey } from './utils';
+import type { EntitySet } from './EntitySet';
 
 /**
  * Clase que facilita el manejo del estado de rcontext, para obtener entidades
@@ -13,31 +14,31 @@ export class RContextStateReader {
 		public readonly state: IRemoteContextState
 	) { }
 
-	getChildren<T = any>(parentEnt: IEnt<any>, chSet: string): IEnt<T>[] {
+	getChildren<T>(parentEnt: IEnt<any>, chSet: EntitySet<T>): IEnt<T>[] {
 
 		const state = this.state;
-		const childrenUids = parentEnt.childrenSets[chSet];
+		const childrenUids = parentEnt.childrenSets[chSet.name];
 		if (!childrenUids) return [];
-		const children = childrenUids.map((uid) => state.map[uid] as IEnt<T>);
+		const children = childrenUids.map((uid) => state.map[uid] as IEnt<any>);
 		return children;
 	}
 
-	getParent<T = any>(childEnt: IEnt<any>, parentSet: string): IEnt<T> | null {
+	getParent<T>(childEnt: IEnt<any>, parentSet: EntitySet<T>) {
 
 		const state = this.state;
-		const parentUid = childEnt.parentsMap[parentSet];
+		const parentUid = childEnt.parentsMap[parentSet.name];
 		if (!parentUid) return null;
-		const parent = state.map[parentUid] as IEnt<T>;
+		const parent = state.map[parentUid] as IEnt<any>;
 		return parent;
 	}
 
-	getEntities<T = any>(setName: string): IEnt<T>[] {
+	getEntities<T>(setName: EntitySet<T>) {
 
 		const state = this.state;
-		const uids = state.sets[setName];
+		const uids = state.sets[setName.name];
 		if (!uids) return [];
 		const ents = uids
-			.map((uid) => state.map[uid] as IEnt<T>)
+			.map((uid) => state.map[uid] as IEnt<any>)
 			.filter((e) => e !== undefined);
 		return ents;
 	}
@@ -58,21 +59,23 @@ export class RContextStateReader {
 	 * entity has multiple keys, it must be an object with the key values pairs
 	 * @returns The entity if found, otherwise null
 	 */
-	findEntity<T = any>(setName: string, id: string | number | TKeysRecord) {
+	findEntity<T>(setName: EntitySet<T>, id: string | number | EntityKeysRecord): IEnt<T> | null {
 
 		const state = this.state;
-		const setDef = this.context.getSetDefinition(setName);
+		const setDef = this.context.getSetDefinition(setName.name);
 		if (setDef.keys.length === 0) return null;
 
 		if (typeof id === 'string') {
 			const isUid = id in state.map;
-			if (isUid) return state.map[id] as IEnt<T>;
+			if (isUid) return state.map[id] as IEnt<any>;
 		}
 		else if (typeof id === 'object') {
-			id = buildObjectKey(id, setDef.keys);
+			const key = buildObjectKey(id, setDef.keys);
+			if (key === null) return null;
+			id = key;
 		}
 
-		const set = state.sets[setName];
+		const set = state.sets[setName.name];
 		if (!set) return null;
 
 		for (const uid of set) {
@@ -81,7 +84,7 @@ export class RContextStateReader {
 
 			if (iEntKey !== id) continue;
 
-			return iEnt as IEnt<T>;
+			return iEnt as IEnt<any>;
 		}
 
 		return null;

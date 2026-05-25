@@ -1,4 +1,4 @@
-import type { TAction, IParentKey, RContext, TSets, IObjectResult } from './RContext';
+import type { EntityAction, IParentKey, RContext, EntitySets, IObjectResult } from './RContext';
 import type { RemoteEntityObject } from './RemoteEntityObject';
 import { getParentKey } from './utils';
 
@@ -6,7 +6,7 @@ import { getParentKey } from './utils';
  * Represents the state of the context
  */
 export interface IRemoteContextState {
-	readonly sets: TSets;
+	readonly sets: EntitySets;
 	readonly map: Record<string, IEnt<any>>;
 }
 
@@ -16,9 +16,9 @@ export interface IRemoteContextState {
 export interface IEntityState<T> {
 	readonly uid: string;
 	readonly entity: RemoteEntityObject<T>;
-	readonly action: TAction;
+	readonly action: EntityAction;
 	readonly data: T;
-	readonly childrenSets: TSets;
+	readonly childrenSets: EntitySets;
 	readonly parentsMap: Record<string, string>;
 	readonly syncResult: IObjectResult<T> | null;
 }
@@ -31,7 +31,7 @@ export type IEnt<T> = IEntityState<T>;
 /**
  * Represents the type of change that must be applied to the state
  */
-export type TStateChangeType = 'add' | 'remove' | 'update';
+export type StateChangeType = 'add' | 'remove' | 'update';
 
 
 export class RContextStateBuilder {
@@ -63,7 +63,7 @@ export class RContextStateBuilder {
 	 */
 	private getUpdatedParentKeys(newState: IRemoteContextState, ent: RemoteEntityObject<any>) {
 
-		const setName = ent.entitySet;
+		const setName = ent.entitySetName;
 		const setDef = this.ctx.getSetDefinition(setName);
 		const currProps = newState.map[ent.localUid].data;
 		const oldProps = this.contextState.map[ent.localUid].data;
@@ -81,7 +81,7 @@ export class RContextStateBuilder {
 	 */
 	private removeFromChildrenSet(newState: IRemoteContextState, ent: RemoteEntityObject<any>, parentKey: IParentKey) {
 
-		const setName = ent.entitySet;
+		const setName = ent.entitySetName;
 		const entUid = ent.localUid;
 		const oldData = this.contextState.map[entUid].data;
 		const pKeyValue = getParentKey(oldData, parentKey);
@@ -89,11 +89,10 @@ export class RContextStateBuilder {
 		if (pKeyValue === null) {
 			return true;
 		}
-		const pSetName = parentKey.entitySet;
+		const pSetName = parentKey.entitySet.name;
 		const parentUid = this.ctx.findEntityUid(pSetName, pKeyValue);
 		if (!parentUid) {
-			console.warn('Parent not found', pSetName, pKeyValue);
-			//success = false;
+			console.warn('Parent not found', pSetName, pKeyValue);			
 			return false;
 		}
 		const iParentEnt = newState.map[parentUid];
@@ -116,12 +115,11 @@ export class RContextStateBuilder {
 		// Also update the parentsMap of the entity
 		const iEnt = newState.map[ent.localUid];
 		if (iEnt) {
+			const newParentsMap = { ...iEnt.parentsMap };
+			delete newParentsMap[pSetName];
 			newState.map[ent.localUid] = {
 				...iEnt,
-				parentsMap: {
-					...iEnt.parentsMap,
-					[pSetName]: undefined,
-				}
+				parentsMap: newParentsMap,				
 			};
 		}
 		// else: in case of a 'delete' operation, the entity has already been removed from the state so we don't need to update it
@@ -138,13 +136,13 @@ export class RContextStateBuilder {
 	 */
 	private addToChildrenSet(newState: IRemoteContextState, ent: RemoteEntityObject<any>, parentKey: IParentKey) {
 
-		const setName = ent.entitySet;
+		const setName = ent.entitySetName;
 		const pKeyValue = getParentKey(ent.getData(), parentKey);
 
 		if (pKeyValue === null) {
 			return true;
 		}
-		const pSetName = parentKey.entitySet;
+		const pSetName = parentKey.entitySet.name;
 		const parentUid = this.ctx.findEntityUid(pSetName, pKeyValue);
 		if (!parentUid) {
 			return false;
@@ -187,9 +185,9 @@ export class RContextStateBuilder {
 	 * @param ent The entity which was added, removed or updated
 	 * @param changeType The type of change that was applied
 	 */
-	private updateStateHierarchy(newState: IRemoteContextState, ent: RemoteEntityObject<any>, changeType: TStateChangeType) {
+	private updateStateHierarchy(newState: IRemoteContextState, ent: RemoteEntityObject<any>, changeType: StateChangeType) {
 
-		const setName = ent.entitySet;
+		const setName = ent.entitySetName;
 		const setDef = this.ctx.getSetDefinition(setName);
 
 		const parentKeys = changeType === 'update' ? this.getUpdatedParentKeys(newState, ent) : setDef.parentKeys;
@@ -235,7 +233,7 @@ export class RContextStateBuilder {
 
 	private allRelationshipsStablished(newState: IRemoteContextState, ent: RemoteEntityObject<any>) {
 
-		const setName = ent.entitySet;
+		const setName = ent.entitySetName;
 		const setDef = this.ctx.getSetDefinition(setName);
 		const parentKeys = setDef.parentKeys;
 
@@ -244,7 +242,8 @@ export class RContextStateBuilder {
 		for (const parentKey of parentKeys) {
 			const pKeyValue = getParentKey(ient.data, parentKey);
 			if (pKeyValue === null) continue;
-			const pUid = ient.parentsMap[parentKey.entitySet];
+			const pSetName = parentKey.entitySet.name;
+			const pUid = ient.parentsMap[pSetName];
 			if (!pUid) return false;
 			const iParentEnt = newState.map[pUid];
 			if (!iParentEnt) return false;
@@ -261,7 +260,7 @@ export class RContextStateBuilder {
 	 * @param affectedUids The uids of the entities that changed. This function will update the state of these entities and their parent/child entities if necessary
 	 * @returns The updated state
 	 */
-	emitChange(changeType: TStateChangeType, affectedUids: string[]) {
+	emitChange(changeType: StateChangeType, affectedUids: string[]) {
 
 		const newState = { ...this.contextState };
 		newState.sets = { ...newState.sets };
@@ -270,7 +269,7 @@ export class RContextStateBuilder {
 		for (const uid of affectedUids) {
 
 			const ent = this.ctx.getObject(uid);
-			const entitySet = ent.entitySet;
+			const entitySet = ent.entitySetName;
 
 			if (changeType === 'add') {
 

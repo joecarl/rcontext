@@ -1,4 +1,4 @@
-import type { RContext, IObjectRequest, TAction, TKeysRecord, IObjectResult } from './RContext';
+import type { RContext, IObjectRequest, EntityAction, EntityKeysRecord, IObjectResult } from './RContext';
 
 export class RemoteEntityObject<T> {
 
@@ -13,8 +13,8 @@ export class RemoteEntityObject<T> {
 
 	constructor(
 		private readonly ctx: RContext,
-		public readonly entitySet: string,
-		private action: TAction,
+		public readonly entitySetName: string,
+		private action: EntityAction,
 		data: T | null,
 		localData?: Partial<T>
 	) {
@@ -115,10 +115,44 @@ export class RemoteEntityObject<T> {
 	}
 
 	/**
+	 * Removes the object from the context without marking it for deletion and without
+	 * going through the sync cycle. The server will not be notified.
+	 */
+	untrack(): void {
+
+		this.ctx.removeObject(this.localUid);
+	}
+
+	/**
+	 * Discards all local unsaved changes on this object:
+	 * - If the action is 'create': removes the object from the context entirely.
+	 * - If the action is 'update' or 'delete': resets the local data and restores
+	 *   the action to 'read', reverting to the last synced remote state.
+	 * - If the action is 'read': no-op (nothing to discard).
+	 */
+	discardChanges(): void {
+
+		if (this.action === 'read') {
+			return;
+		}
+
+		if (this.action === 'create') {
+			this.ctx.removeObject(this.localUid);
+			return;
+		}
+
+		// action is 'update' or 'delete'
+		this.localData = {};
+		this.syncResult = null;
+		this.action = 'read';
+		this.ctx.emitStateChange('update', [this.localUid]);
+	}
+
+	/**
 	 * Returns the state of a field in the object
 	 * @param fieldName The name of the field
 	 */
-	getFieldState(fieldName: string) {
+	getFieldState(fieldName: keyof T) {
 
 		if (this.remoteData === null || this.remoteData === undefined) {
 
@@ -142,11 +176,12 @@ export class RemoteEntityObject<T> {
 	getKeys() {
 
 		if (this.action === 'create') return null;
-		const setDef = this.ctx.getEntitySetDefinition(this.entitySet);
-		const keys: TKeysRecord = {};
+		const setDef = this.ctx.getSetDefinition(this.entitySetName);
+		const keys: EntityKeysRecord = {};
 		for (const key of setDef.keys) {
-			const v = this.remoteData ? this.remoteData[key] : null;
-			keys[key] = v;
+			const k = key as keyof T;
+			const v = this.remoteData ? this.remoteData[k] : null;
+			(keys as any)[k] = v;
 		}
 		return keys;
 	}
@@ -163,7 +198,7 @@ export class RemoteEntityObject<T> {
 		} else {
 
 			return {
-				entitySet: this.entitySet,
+				entitySet: this.entitySetName,
 				remoteUid: this.localUid,
 				newData: this.localData,
 				action: this.action,
@@ -239,9 +274,9 @@ export class RemoteEntityObject<T> {
 			return this.localUid;
 		}
 
-		const setDef = this.ctx.getEntitySetDefinition(this.entitySet);
+		const setDef = this.ctx.getSetDefinition(this.entitySetName);
 		if (setDef.keys.length !== 1) throw new Error('Multi key relational parent is not supported');
-		const keyProp = setDef.keys[0];
+		const keyProp = setDef.keys[0] as keyof T;
 		const keyVal = this.remoteData ? this.remoteData[keyProp] : null;
 		return keyVal;
 	}

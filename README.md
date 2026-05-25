@@ -16,34 +16,64 @@ If a child entity is added before its parent, the relationship cannot be created
 ```ts
 const ctx = new RContext();
 
+interface User {
+    id: number;
+    name: string;
+}
+
+interface Post {
+    id: number;
+    authorId: number;
+    title: string;
+}
+
 // Independent entity set
-ctx.addEntitySet({
-    name: 'mySet1',
+// addEntitySet<T>() returns a typed EntitySet<T> handle
+const userSet = ctx.addEntitySet<User>({
+    name: 'users',
     keys: ['id'],
-    parentKeys: []
 });
 
-// Entity set whose parent is mySet1
-ctx.addEntitySet({
-    name: 'mySet2',
+// Entity set whose parent is userSet — reference the EntitySet instance directly
+const postSet = ctx.addEntitySet<Post>({
+    name: 'posts',
     keys: ['id'],
     parentKeys: [
         {
-            entitySet: 'mySet1',
-            props: ['parentId']
+            entitySet: userSet,   // typed EntitySet<User>, no magic strings
+            props: ['authorId'],
         }
-    ]
+    ],
 });
+```
+
+For self-referential sets, use `addParentKey()` after creation:
+
+```ts
+interface Category {
+    id: number;
+    parentId: number | null;
+    name: string;
+}
+
+const categorySet = ctx.addEntitySet<Category>({
+    name: 'categories',
+    keys: ['id'],
+});
+categorySet.addParentKey({ entitySet: categorySet, props: ['parentId'] });
 ```
 
 ### Add entities
 
 ```ts
-// Add an independent entity
-const ent1 = ctx.trackObject('mySet1', { id: 1, name: 'My entity 1' });
+// Track an existing remote entity (fetched from the server)
+const user1 = userSet.trackObject({ id: 1, name: 'Alice' });
 
-// Add an entity whose parent will be ent1
-const ent2 = ctx.trackObject('mySet2', { id: 5, parentId: 1, name: 'My entity 2' });
+// Track an entity whose parent will be user1
+const post1 = postSet.trackObject({ id: 5, authorId: 1, title: 'Hello world' });
+
+// Create a new entity locally (not yet synced with the server)
+const newPost = postSet.createObject({ authorId: user1.toRelationalKey(), title: 'New post' });
 ```
 
 ### Play with state
@@ -55,11 +85,17 @@ const state = ctx.getState();
 // Managing state directly might be a bit tedious; better use this helper class
 const stateReader = ctx.createStateReader(state); // Creates a new instance of RContextStateReader
 
-// Get children of ent1 whose entitySet is 'mySet2'
-const children = stateReader.getChildren(ent1, 'mySet2'); 
+// Get children of user1 in postSet
+const posts = stateReader.getChildren(user1, postSet);
 
-// Get the parent of ent2 whose entitySet is 'mySet1'
-const parent = stateReader.getParent(ent2, 'mySet1'); 
+// Get the parent of post1 in userSet
+const author = stateReader.getParent(post1, userSet);
+
+// Get all entities in a set
+const allPosts = stateReader.getEntities(postSet);
+
+// Find a specific entity by key
+const found = stateReader.findEntity(postSet, 5);
 ```
 
 Please note that the methods in `RContextStateReader` never return pure entities. Instead, they return immutable state objects, which include a reference to the corresponding pure entity for convenience.
@@ -78,18 +114,22 @@ ctx.onContextChange = (newContextState) => {
 ### Edit your data, build requests, and sync with your server
 ```ts
 // Edit an existing entity
-ent2.edit({ name: 'New name for this entity!' });
+post1.edit({ title: 'Updated title' });
 
-// Add an entity in creation mode
-const ent3 = ctx.createObject('mySet1', { name: 'My entity 3' });
+// Discard all unsaved changes (reverts to last synced state, or removes if 'create')
+post1.discardChanges();
+
+// Remove from context without marking for deletion — server is not notified
+post1.untrack();
+
+// Mark for deletion (server will be notified on next sync)
+post1.remove();
 
 // Generate the composite request object, which will include all the necessary
 // information for the server to update the remote data.
-// In this case, it will contain information to create `ent3` and update the
-// `name` property of `ent2`.
 const requests = ctx.buildRequests();
 
-// Send the generated object to the server and handle the information there 
+// Send the generated object to the server and handle the information there
 // (there are official implementations for handling these requests in PHP and C#)
 const response = await myFunctionToSendTheObjectToTheServer(requests);
 

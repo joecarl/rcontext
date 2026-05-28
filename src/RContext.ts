@@ -89,14 +89,17 @@ export class RContext {
 		this.emitStateChange('add', [ent.localUid]);
 	}
 
+	/** @internal */
 	getObject(uid: string) {
 		return this.objects[uid];
 	}
 
+	/** @internal */
 	getSetDefinition(setName: string): EntitySet<any> {
 		return this.setsDefinitions[setName];
 	}
 
+	/** @internal */
 	getNewUid() {
 
 		return RContext.uidPrefix + (this.uidIndex++);

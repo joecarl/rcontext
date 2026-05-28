@@ -4,6 +4,7 @@
 		"target": "ES2022",
 		"moduleResolution": "bundler",
 		"declaration": true,
+		"stripInternal": true,
 		"strict": true,
 		"ignoreDeprecations": "6.0",
 		"rootDir": "./src",

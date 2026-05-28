@@ -293,3 +293,89 @@ test('removing immediately an orphan entity also removes it form the orphans lis
 	const orphans2 = ctx.getOrphanEntities();
 	expect(orphans2).toHaveLength(0);
 });
+
+
+test('onContextChange is debounced: multiple sync changes trigger only one notification', async () => {
+
+	const { ctx, set1 } = createContext();
+
+	let callCount = 0;
+	ctx.onContextChange = () => { callCount++; };
+
+	set1.trackObject({ id: 1, name: 'a' });
+	set1.trackObject({ id: 2, name: 'b' });
+	set1.trackObject({ id: 3, name: 'c' });
+
+	expect(callCount).toBe(0); // still debounced
+
+	await new Promise(resolve => setTimeout(resolve, 10));
+
+	expect(callCount).toBe(1); // only one notification fired
+});
+
+
+test('flushStateChange triggers onContextChange immediately and synchronously', () => {
+
+	const { ctx, set1 } = createContext();
+
+	let receivedState = null as any;
+	ctx.onContextChange = (state) => { receivedState = state; };
+
+	set1.trackObject({ id: 1, name: 'a' });
+
+	expect(receivedState).toBeNull(); // not fired yet
+
+	ctx.flushStateChange();
+
+	expect(receivedState).not.toBeNull();
+	expect(Object.keys(receivedState.map)).toHaveLength(1);
+});
+
+
+test('flushStateChange delivers the batched state of all pending changes', () => {
+
+	const { ctx, set1 } = createContext();
+
+	let receivedState = null as any;
+	ctx.onContextChange = (state) => { receivedState = state; };
+
+	set1.trackObject({ id: 1, name: 'a' });
+	set1.trackObject({ id: 2, name: 'b' });
+	set1.trackObject({ id: 3, name: 'c' });
+
+	ctx.flushStateChange();
+
+	expect(Object.keys(receivedState.map)).toHaveLength(3);
+});
+
+
+test('flushStateChange does nothing when there is no pending change', () => {
+
+	const { ctx, set1 } = createContext();
+
+	let callCount = 0;
+	ctx.onContextChange = () => { callCount++; };
+
+	set1.trackObject({ id: 1, name: 'a' });
+	ctx.flushStateChange(); // first flush — fires
+
+	ctx.flushStateChange(); // no pending change — should be a no-op
+
+	expect(callCount).toBe(1);
+});
+
+
+test('flushStateChange cancels the pending timeout so onContextChange does not fire twice', async () => {
+
+	const { ctx, set1 } = createContext();
+
+	let callCount = 0;
+	ctx.onContextChange = () => { callCount++; };
+
+	set1.trackObject({ id: 1, name: 'a' });
+	ctx.flushStateChange();
+
+	await new Promise(resolve => setTimeout(resolve, 10));
+
+	expect(callCount).toBe(1); // only the flush, timeout was cancelled
+});

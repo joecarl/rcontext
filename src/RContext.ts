@@ -55,6 +55,8 @@ export class RContext {
 
 	private triggerStateChangeTimeout: any;
 
+	private pendingState: IRemoteContextState | null = null;
+
 	public onContextChange: (newState: IRemoteContextState) => void = () => { };
 
 
@@ -100,8 +102,8 @@ export class RContext {
 		return RContext.uidPrefix + (this.uidIndex++);
 	}
 
-	//deberia ser private
 	/**
+	 * @internal
 	 * Tells the state manager to emit a state change
 	 * @param changeType 'add' if the objects must be added, 'update' if the objects must be updated, 'remove' if the objects must be removed
 	 * @param affectedUids the uids of the objects that are affected by the change
@@ -112,10 +114,31 @@ export class RContext {
 
 		if (typeof this.onContextChange !== 'function') return;
 
+		this.pendingState = newState;
 		clearTimeout(this.triggerStateChangeTimeout);
 		this.triggerStateChangeTimeout = setTimeout(() => {
-			this.onContextChange(newState);
+			this.triggerOnContextChange();
 		}, 1);
+	}
+
+	/**
+	 * Immediately fires the pending debounced `onContextChange` notification, if any.
+	 * Useful when you need the UI state to be updated synchronously after a change.
+	 */
+	flushStateChange() {
+
+		if (this.triggerStateChangeTimeout === undefined) return;
+		clearTimeout(this.triggerStateChangeTimeout);
+		this.triggerOnContextChange();
+	}
+
+	private triggerOnContextChange() {
+		
+		if (this.pendingState === null) return;
+		const newState = this.pendingState;
+		this.triggerStateChangeTimeout = undefined;
+		this.pendingState = null;
+		this.onContextChange(newState);
 	}
 
 	getState() {
@@ -142,6 +165,7 @@ export class RContext {
 	}
 
 	/**
+	 * @internal
 	 * This function is designed for internal use only. It is used to find the uid of an entity
 	 * @param entitySet 
 	 * @param id 

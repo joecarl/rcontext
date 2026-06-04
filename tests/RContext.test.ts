@@ -379,3 +379,17 @@ test('flushStateChange cancels the pending timeout so onContextChange does not f
 
 	expect(callCount).toBe(1); // only the flush, timeout was cancelled
 });
+
+
+test('tracking 10000 entities completes in under 1 second', () => {
+
+	const { set1 } = createContext();
+
+	const objs = Array.from({ length: 10000 }, (_, i) => ({ id: i, name: `ent${i}` }));
+
+	const start = performance.now();
+	set1.trackMultipleObjects(objs);
+	const elapsed = performance.now() - start;
+
+	expect(elapsed).toBeLessThan(1000);
+});

@@ -90,6 +90,15 @@ export class RContext {
 	}
 
 	/** @internal */
+	registerMultipleObjects(ents: RemoteEntityObject<any>[]) {
+
+		for (const ent of ents) {
+			this.objects[ent.localUid] = ent;
+		}
+		this.emitStateChange('add', ents.map(ent => ent.localUid));
+	}
+
+	/** @internal */
 	getObject(uid: string) {
 		return this.objects[uid];
 	}
@@ -112,6 +121,13 @@ export class RContext {
 	 * @param affectedUids the uids of the objects that are affected by the change
 	 */
 	emitStateChange(changeType: StateChangeType, affectedUids: string[]) {
+
+		if (changeType === 'update') {
+			for (const uid of affectedUids) {
+				const ent = this.objects[uid];
+				if (ent) this.setsDefinitions[ent.entitySetName]?.reindexObject(ent);
+			}
+		}
 
 		const newState = this.stateManager.emitChange(changeType, affectedUids);
 
@@ -182,16 +198,7 @@ export class RContext {
 		const setDef = this.setsDefinitions[entitySet];
 		if (setDef.keys.length === 0) return null;
 
-		for (const uid in this.objects) {
-			const iEnt = this.objects[uid];
-			if (iEnt.entitySetName !== entitySet) continue;
-			const iEntKey = buildObjectKey(iEnt.getData(), setDef.keys);
-
-			if (iEntKey === null || iEntKey.toString() !== id) continue;
-			return uid;
-		}
-
-		return null;
+		return setDef.findEntityByKeyString(id)?.localUid ?? null;
 	}
 
 	/**

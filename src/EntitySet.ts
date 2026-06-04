@@ -1,4 +1,5 @@
 import type { IParentKey, RContext } from './RContext';
+import { EntitySetIndexer } from './EntitySetIndexer';
 import { RemoteEntityObject } from './RemoteEntityObject';
 
 export class EntitySet<T> {
@@ -7,6 +8,8 @@ export class EntitySet<T> {
 
 	private readonly _objects: Record<string, RemoteEntityObject<T>> = {};
 
+	private readonly _indexer: EntitySetIndexer<T>;
+
 	constructor(
 		private readonly ctx: RContext,
 		public readonly name: string,
@@ -14,6 +17,7 @@ export class EntitySet<T> {
 		parentKeys: IParentKey<any, T>[] = [],
 	) {
 		this._parentKeys.push(...parentKeys);
+		this._indexer = new EntitySetIndexer<T>(keys);
 	}
 
 	get parentKeys(): ReadonlyArray<IParentKey<any, T>> {
@@ -28,17 +32,21 @@ export class EntitySet<T> {
 		this._parentKeys.push(pk);
 	}
 
+	/** @internal Re-computes the index entry for an entity whose data may have changed. */
+	reindexObject(ent: RemoteEntityObject<T>): void {
+		this._indexer.reindex(ent);
+	}
+
 	/**
 	 * Finds an entity in this set whose keys match the provided values.
 	 */
 	findEntity(keyValues: Record<string, any>): RemoteEntityObject<T> | null {
-		if (this.keys.length === 0) return null;
-		for (const uid in this._objects) {
-			const ent = this._objects[uid];
-			const data = ent.getData();
-			if (this.keys.every(k => keyValues[k] === (data as Record<string, any>)[k])) return ent;
-		}
-		return null;
+		return this._indexer.findByKeyValues(keyValues);
+	}
+
+	/** @internal O(1) lookup by pre-built key string (output of buildObjectKey.toString()). */
+	findEntityByKeyString(keyStr: string): RemoteEntityObject<T> | null {
+		return this._indexer.findByKeyString(keyStr);
 	}
 
 	/**
@@ -47,6 +55,7 @@ export class EntitySet<T> {
 	createObject(obj: Partial<T>): RemoteEntityObject<T> {
 		const ent = new RemoteEntityObject<T>(this.ctx, this.name, 'create', null, obj);
 		this._objects[ent.localUid] = ent;
+		this._indexer.add(ent);
 		this.ctx.registerObject(ent);
 		return ent;
 	}
@@ -63,12 +72,32 @@ export class EntitySet<T> {
 		}
 		const ent = new RemoteEntityObject<T>(this.ctx, this.name, 'read', obj);
 		this._objects[ent.localUid] = ent;
+		this._indexer.add(ent);
 		this.ctx.registerObject(ent);
 		return ent;
 	}
 
+	trackMultipleObjects(objs: T[]): RemoteEntityObject<T>[] {
+		const ents: RemoteEntityObject<T>[] = [];
+		for (const obj of objs) {
+			const existing = this.findEntity(obj as Record<string, any>);
+			if (existing) {
+				existing.updateRemoteData(obj);
+				ents.push(existing);
+				continue;
+			}
+			const ent = new RemoteEntityObject<T>(this.ctx, this.name, 'read', obj);
+			this._objects[ent.localUid] = ent;
+			this._indexer.add(ent);
+			ents.push(ent);
+		}
+		this.ctx.registerMultipleObjects(ents);
+		return ents;
+	}
+
 	/** @internal */
 	unregisterObject(uid: string): void {
+		this._indexer.remove(uid);
 		delete this._objects[uid];
 	}
 }

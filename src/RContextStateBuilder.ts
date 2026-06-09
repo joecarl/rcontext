@@ -1,5 +1,5 @@
 import type { EntityAction, IParentKey, RContext, EntitySets, IObjectResult } from './RContext';
-import type { RemoteEntityObject } from './RemoteEntityObject';
+import type { EntityObject } from './EntityObject';
 import { getParentKey } from './utils';
 
 /**
@@ -14,8 +14,10 @@ export interface IRemoteContextState {
  * Represents the state of a single entity in the context
  */
 export interface IEntityState<T> {
+	/** @deprecated Use cid instead, this is an alias to keep retrocompatibility with the previous version of the library */
 	readonly uid: string;
-	readonly entity: RemoteEntityObject<T>;
+	readonly cid: string;
+	readonly entity: EntityObject<T>;
 	readonly action: EntityAction;
 	readonly data: T;
 	readonly childrenSets: EntitySets;
@@ -39,7 +41,7 @@ export class RContextStateBuilder {
 	/**
 	 * List of entities with defined parent keys which point to non-existent parent entities
 	 */
-	private orphanEntities: RemoteEntityObject<any>[] = [];
+	private orphanEntities: EntityObject<any>[] = [];
 
 	/**
 	 * The current state of the context
@@ -61,12 +63,12 @@ export class RContextStateBuilder {
 	 * @param ent The entity that was updated
 	 * @returns The updated parent keys definitions
 	 */
-	private getUpdatedParentKeys(newState: IRemoteContextState, ent: RemoteEntityObject<any>) {
+	private getUpdatedParentKeys(newState: IRemoteContextState, ent: EntityObject<any>) {
 
 		const setName = ent.entitySetName;
 		const setDef = this.ctx.getSetDefinition(setName);
-		const currProps = newState.map[ent.localUid].data;
-		const oldProps = this.contextState.map[ent.localUid].data;
+		const currProps = newState.map[ent.cid].data;
+		const oldProps = this.contextState.map[ent.cid].data;
 		const updatedParentKeys = setDef.parentKeys.filter(pKey => getParentKey(currProps, pKey) !== getParentKey(oldProps, pKey));
 
 		return updatedParentKeys;
@@ -79,10 +81,10 @@ export class RContextStateBuilder {
 	 * @param parentKey 
 	 * @returns True if the operation was successful, false otherwise
 	 */
-	private removeFromChildrenSet(newState: IRemoteContextState, ent: RemoteEntityObject<any>, parentKey: IParentKey) {
+	private removeFromChildrenSet(newState: IRemoteContextState, ent: EntityObject<any>, parentKey: IParentKey) {
 
 		const setName = ent.entitySetName;
-		const entUid = ent.localUid;
+		const entUid = ent.cid;
 		const oldData = this.contextState.map[entUid].data;
 		const pKeyValue = getParentKey(oldData, parentKey);
 
@@ -113,11 +115,11 @@ export class RContextStateBuilder {
 		};
 
 		// Also update the parentsMap of the entity
-		const iEnt = newState.map[ent.localUid];
+		const iEnt = newState.map[ent.cid];
 		if (iEnt) {
 			const newParentsMap = { ...iEnt.parentsMap };
 			delete newParentsMap[pSetName];
-			newState.map[ent.localUid] = {
+			newState.map[ent.cid] = {
 				...iEnt,
 				parentsMap: newParentsMap,				
 			};
@@ -134,7 +136,7 @@ export class RContextStateBuilder {
 	 * @param parentKey 
 	 * @returns True if the operation was successful, false otherwise
 	 */
-	private addToChildrenSet(newState: IRemoteContextState, ent: RemoteEntityObject<any>, parentKey: IParentKey) {
+	private addToChildrenSet(newState: IRemoteContextState, ent: EntityObject<any>, parentKey: IParentKey) {
 
 		const setName = ent.entitySetName;
 		const pKeyValue = getParentKey(ent.getData(), parentKey);
@@ -153,7 +155,7 @@ export class RContextStateBuilder {
 		}
 		const childrenSet = iParentEnt.childrenSets[setName] ?? [];
 
-		if (childrenSet.indexOf(ent.localUid) !== -1) return true;
+		if (childrenSet.indexOf(ent.cid) !== -1) return true;
 
 		newState.map[parentUid] = {
 			...iParentEnt,
@@ -161,14 +163,14 @@ export class RContextStateBuilder {
 				...iParentEnt.childrenSets,
 				[setName]: [
 					...childrenSet,
-					ent.localUid
+					ent.cid
 				]
 			}
 		};
 
 		// Also update the parentsMap of the entity
-		const iEnt = newState.map[ent.localUid];
-		newState.map[ent.localUid] = {
+		const iEnt = newState.map[ent.cid];
+		newState.map[ent.cid] = {
 			...iEnt,
 			parentsMap: {
 				...iEnt.parentsMap,
@@ -185,7 +187,7 @@ export class RContextStateBuilder {
 	 * @param ent The entity which was added, removed or updated
 	 * @param changeType The type of change that was applied
 	 */
-	private updateStateHierarchy(newState: IRemoteContextState, ent: RemoteEntityObject<any>, changeType: StateChangeType) {
+	private updateStateHierarchy(newState: IRemoteContextState, ent: EntityObject<any>, changeType: StateChangeType) {
 
 		const setName = ent.entitySetName;
 		const setDef = this.ctx.getSetDefinition(setName);
@@ -212,7 +214,7 @@ export class RContextStateBuilder {
 
 		if (changeType === 'remove') {
 
-			const iEnt = this.contextState.map[ent.localUid];
+			const iEnt = this.contextState.map[ent.cid];
 			for (const entitySet in iEnt.childrenSets) {
 				const childrenSet = iEnt.childrenSets[entitySet];
 				for (const childUid of childrenSet) {
@@ -231,13 +233,13 @@ export class RContextStateBuilder {
 		}
 	}
 
-	private allRelationshipsStablished(newState: IRemoteContextState, ent: RemoteEntityObject<any>) {
+	private allRelationshipsStablished(newState: IRemoteContextState, ent: EntityObject<any>) {
 
 		const setName = ent.entitySetName;
 		const setDef = this.ctx.getSetDefinition(setName);
 		const parentKeys = setDef.parentKeys;
 
-		const ient = newState.map[ent.localUid];
+		const ient = newState.map[ent.cid];
 
 		for (const parentKey of parentKeys) {
 			const pKeyValue = getParentKey(ient.data, parentKey);
@@ -248,7 +250,7 @@ export class RContextStateBuilder {
 			const iParentEnt = newState.map[pUid];
 			if (!iParentEnt) return false;
 			const childrenSet = iParentEnt.childrenSets[setName] ?? [];
-			if (childrenSet.indexOf(ent.localUid) === -1) return false;
+			if (childrenSet.indexOf(ent.cid) === -1) return false;
 		}
 
 		return true;
@@ -316,10 +318,11 @@ export class RContextStateBuilder {
 	}
 
 
-	private static buildEntityState<T>(ent: RemoteEntityObject<T>): IEnt<T> {
+	private static buildEntityState<T>(ent: EntityObject<T>): IEnt<T> {
 
 		return {
-			uid: ent.localUid,
+			uid: ent.cid,
+			cid: ent.cid,
 			action: ent.getAction(),
 			childrenSets: {},
 			parentsMap: {},

@@ -54,7 +54,7 @@ test('indexer: after sync with server-assigned id the entity is findable by the 
 	const ent = set1.createObject({ name: 'new entity' });
 
 	ctx.sync({
-		[ent.localUid]: {
+		[ent.cid]: {
 			success: true,
 			message: '',
 			feedback: null,
@@ -101,6 +101,6 @@ test('indexer: editing parent key resolves pending orphan', () => {
 
 	// Now the index has key 99 → parent, so the orphan should resolve
 	const state = set1['ctx'].getState();
-	const parentUid = state.map[child.localUid]?.parentsMap['set1_independant'];
-	expect(parentUid).toBe(parent.localUid);
+	const parentUid = state.map[child.cid]?.parentsMap['set1_independant'];
+	expect(parentUid).toBe(parent.cid);
 });

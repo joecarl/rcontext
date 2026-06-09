@@ -1,6 +1,6 @@
 import { test, expect } from 'vitest';
 import { RContext } from '../src/RContext';
-import { RemoteEntityObject } from '../src/RemoteEntityObject';
+import { EntityObject } from '../src/EntityObject';
 import { createContext } from './testContext';
 
 
@@ -16,17 +16,17 @@ test('adding related objects creates relationships in state', () => {
 
 	const state = ctx.getState();
 
-	const chSet = state.map[parentEnt.localUid].childrenSets['set3_dependsOn_set1'];
+	const chSet = state.map[parentEnt.cid].childrenSets['set3_dependsOn_set1'];
 	expect(chSet).toBeTruthy();
 
 	const chUid = chSet[0];
-	expect(chUid).toBe(childEnt.localUid);
+	expect(chUid).toBe(childEnt.cid);
 	const ch = state.map[chUid];
 	expect(ch).toBeTruthy();
 	expect(ch.data).toMatchObject({ ...childObj });
 
-	const parentUid = state.map[childEnt.localUid].parentsMap['set1_independant'];
-	expect(parentUid).toBe(parentEnt.localUid);
+	const parentUid = state.map[childEnt.cid].parentsMap['set1_independant'];
+	expect(parentUid).toBe(parentEnt.cid);
 	const parent = state.map[parentUid];
 	expect(parent).toBeTruthy();
 	expect(parent.data).toMatchObject({ ...parentObj });
@@ -47,10 +47,10 @@ test('removing related objects removes relationships in state', () => {
 
 	const state = ctx.getState();
 
-	const ient1 = state.map[parentEnt.localUid];
+	const ient1 = state.map[parentEnt.cid];
 	expect(ient1).toBeFalsy();
 
-	const parentUid = state.map[childEnt.localUid].parentsMap['set1_independant'];
+	const parentUid = state.map[childEnt.cid].parentsMap['set1_independant'];
 	expect(parentUid).toBeFalsy();
 });
 
@@ -63,7 +63,7 @@ test('adding related objects in async events still creates relationships in stat
 	const childEnt = set3.trackObject(childObj);
 
 	const parentObj = { id: 1, name: 'ent1' };
-	const parentEnt = await new Promise<RemoteEntityObject<any>>(resolve => {
+	const parentEnt = await new Promise<EntityObject<any>>(resolve => {
 		setTimeout(() => {
 			const ent1 = set1.trackObject(parentObj);
 			resolve(ent1);
@@ -74,17 +74,17 @@ test('adding related objects in async events still creates relationships in stat
 
 	const state = ctx.getState();
 
-	const chSet = state.map[parentEnt.localUid].childrenSets['set3_dependsOn_set1'];
+	const chSet = state.map[parentEnt.cid].childrenSets['set3_dependsOn_set1'];
 	expect(chSet).toBeTruthy();
 
 	const chUid = chSet[0];
-	expect(chUid).toBe(childEnt.localUid);
+	expect(chUid).toBe(childEnt.cid);
 	const ch = state.map[chUid];
 	expect(ch).toBeTruthy();
 	expect(ch.data).toMatchObject({ ...childObj });
 
-	const parentUid = state.map[childEnt.localUid].parentsMap['set1_independant'];
-	expect(parentUid).toBe(parentEnt.localUid);
+	const parentUid = state.map[childEnt.cid].parentsMap['set1_independant'];
+	expect(parentUid).toBe(parentEnt.cid);
 	const parent = state.map[parentUid];
 	expect(parent).toBeTruthy();
 	expect(parent.data).toMatchObject({ ...parentObj });
@@ -100,7 +100,7 @@ test('adding entity with null parent key does not create relationships in state 
 
 	const state = ctx.getState();
 
-	const parentUid = state.map[ent.localUid].parentsMap['set1_independant'];
+	const parentUid = state.map[ent.cid].parentsMap['set1_independant'];
 	expect(parentUid).toBeFalsy();
 
 	const orphans = ctx.getOrphanEntities();
@@ -117,7 +117,7 @@ test('adding related objects with missing parent does not create relationships i
 
 	const state = ctx.getState();
 
-	const parentUid = state.map[orphanEnt.localUid].parentsMap['set1_independant'];
+	const parentUid = state.map[orphanEnt.cid].parentsMap['set1_independant'];
 	expect(parentUid).toBeFalsy();
 
 	const orphans = ctx.getOrphanEntities();
@@ -142,8 +142,8 @@ test('adding one of the missing parents of an orphan entity with multiple parent
 
 	const state = ctx.getState();
 
-	const parentUid = state.map[childEnt.localUid].parentsMap['set1_independant'];
-	expect(parentUid).toBe(parentEnt.localUid);
+	const parentUid = state.map[childEnt.cid].parentsMap['set1_independant'];
+	expect(parentUid).toBe(parentEnt.cid);
 
 	const orphans2 = ctx.getOrphanEntities();
 	expect(orphans2).toHaveLength(1);
@@ -175,16 +175,16 @@ test('adding both missing parents of an orphan entity with multiple parents crea
 	const state = ctx.getState();
 
 	// Check parents map
-	const parentUid = state.map[childEnt.localUid].parentsMap['set1_independant'];
-	expect(parentUid).toBe(parentEnt1.localUid);
-	const parentUidB = state.map[childEnt.localUid].parentsMap['set2_independant'];
-	expect(parentUidB).toBe(parentEnt2.localUid);
+	const parentUid = state.map[childEnt.cid].parentsMap['set1_independant'];
+	expect(parentUid).toBe(parentEnt1.cid);
+	const parentUidB = state.map[childEnt.cid].parentsMap['set2_independant'];
+	expect(parentUidB).toBe(parentEnt2.cid);
 
 	// Check children set
-	const chSet = state.map[parentEnt1.localUid].childrenSets['set5_dependsOn_set1_and_set2'];
+	const chSet = state.map[parentEnt1.cid].childrenSets['set5_dependsOn_set1_and_set2'];
 	expect(chSet).toBeTruthy();
 	expect(chSet).toHaveLength(1);
-	expect(chSet[0]).toBe(childEnt.localUid);
+	expect(chSet[0]).toBe(childEnt.cid);
 
 	// Check orphans
 	const orphans3 = ctx.getOrphanEntities();
@@ -203,7 +203,7 @@ test('editing an entity props updates the state', () => {
 
 	const state = ctx.getState();
 
-	const ient = state.map[ent.localUid];
+	const ient = state.map[ent.cid];
 	expect(ient.data.name).toBe('entidad1');
 });
 
@@ -221,12 +221,12 @@ test('building a request for an entity whose parent is in creation mode also bui
 	const childObj = { parentId: parentEnt.toRelationalKey() as number, name: 'ent3' };
 	const childEnt = set3.createObject(childObj);
 
-	const reqs = ctx.buildRequestsForUids([childEnt.localUid]);
+	const reqs = ctx.buildRequestsForUids([childEnt.cid]);
 
 	// The request dictionary must have 2 elements and specifically they must be parentEnt and childEnt
 	expect(Object.keys(reqs)).toHaveLength(2);
-	expect(reqs[parentEnt.localUid]).toBeTruthy();
-	expect(reqs[childEnt.localUid]).toBeTruthy();
+	expect(reqs[parentEnt.cid]).toBeTruthy();
+	expect(reqs[childEnt.cid]).toBeTruthy();
 });
 
 
@@ -271,8 +271,8 @@ test('adding the same entity twice and then adding the parent entity does not ca
 
 	const state = ctx.getState();
 
-	const parentUid = state.map[childEntT1.localUid].parentsMap['set1_independant'];
-	expect(parentUid).toBe(parentEnt.localUid);
+	const parentUid = state.map[childEntT1.cid].parentsMap['set1_independant'];
+	expect(parentUid).toBe(parentEnt.cid);
 
 	const orphans2 = ctx.getOrphanEntities();
 	expect(orphans2).toHaveLength(0);

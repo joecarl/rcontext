@@ -1,9 +1,9 @@
-import type { RemoteEntityObject } from './RemoteEntityObject';
+import type { EntityObject } from './EntityObject';
 import { buildObjectKey } from './utils';
 
 export class EntitySetIndexer<T> {
 
-    private readonly _keyIndex: Map<string, RemoteEntityObject<T>> = new Map();
+    private readonly _keyIndex: Map<string, EntityObject<T>> = new Map();
     private readonly _uidToKey: Map<string, string> = new Map();
 
     constructor(private readonly keys: string[]) {}
@@ -18,11 +18,11 @@ export class EntitySetIndexer<T> {
         }
     }
 
-    add(ent: RemoteEntityObject<T>): void {
+    add(ent: EntityObject<T>): void {
         const key = this.computeKey(ent.getData() as Record<string, any>);
         if (key === null) return;
         this._keyIndex.set(key, ent);
-        this._uidToKey.set(ent.localUid, key);
+        this._uidToKey.set(ent.cid, key);
     }
 
     remove(uid: string): void {
@@ -32,18 +32,18 @@ export class EntitySetIndexer<T> {
         this._uidToKey.delete(uid);
     }
 
-    reindex(ent: RemoteEntityObject<T>): void {
-        this.remove(ent.localUid);
+    reindex(ent: EntityObject<T>): void {
+        this.remove(ent.cid);
         this.add(ent);
     }
 
-    findByKeyValues(keyValues: Record<string, any>): RemoteEntityObject<T> | null {
+    findByKeyValues(keyValues: Record<string, any>): EntityObject<T> | null {
         const key = this.computeKey(keyValues);
         if (key === null) return null;
         return this._keyIndex.get(key) ?? null;
     }
 
-    findByKeyString(keyStr: string): RemoteEntityObject<T> | null {
+    findByKeyString(keyStr: string): EntityObject<T> | null {
         return this._keyIndex.get(keyStr) ?? null;
     }
 }

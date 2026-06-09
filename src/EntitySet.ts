@@ -1,12 +1,12 @@
 import type { IParentKey, RContext } from './RContext';
 import { EntitySetIndexer } from './EntitySetIndexer';
-import { RemoteEntityObject } from './RemoteEntityObject';
+import { EntityObject } from './EntityObject';
 
 export class EntitySet<T> {
 
 	private readonly _parentKeys: IParentKey<any, T>[] = [];
 
-	private readonly _objects: Record<string, RemoteEntityObject<T>> = {};
+	private readonly _objects: Record<string, EntityObject<T>> = {};
 
 	private readonly _indexer: EntitySetIndexer<T>;
 
@@ -33,28 +33,28 @@ export class EntitySet<T> {
 	}
 
 	/** @internal Re-computes the index entry for an entity whose data may have changed. */
-	reindexObject(ent: RemoteEntityObject<T>): void {
+	reindexObject(ent: EntityObject<T>): void {
 		this._indexer.reindex(ent);
 	}
 
 	/**
 	 * Finds an entity in this set whose keys match the provided values.
 	 */
-	findEntity(keyValues: Record<string, any>): RemoteEntityObject<T> | null {
+	findEntity(keyValues: Record<string, any>): EntityObject<T> | null {
 		return this._indexer.findByKeyValues(keyValues);
 	}
 
 	/** @internal O(1) lookup by pre-built key string (output of buildObjectKey.toString()). */
-	findEntityByKeyString(keyStr: string): RemoteEntityObject<T> | null {
+	findEntityByKeyString(keyStr: string): EntityObject<T> | null {
 		return this._indexer.findByKeyString(keyStr);
 	}
 
 	/**
 	 * Creates a new entity in this set with local-only data (action: 'create')
 	 */
-	createObject(obj: Partial<T>): RemoteEntityObject<T> {
-		const ent = new RemoteEntityObject<T>(this.ctx, this.name, 'create', null, obj);
-		this._objects[ent.localUid] = ent;
+	createObject(obj: Partial<T>): EntityObject<T> {
+		const ent = new EntityObject<T>(this.ctx, this.name, 'create', null, obj);
+		this._objects[ent.cid] = ent;
 		this._indexer.add(ent);
 		this.ctx.registerObject(ent);
 		return ent;
@@ -64,21 +64,21 @@ export class EntitySet<T> {
 	 * Tracks an existing remote entity in this set (action: 'read').
 	 * If an entity with the same keys already exists it is updated instead.
 	 */
-	trackObject(obj: T): RemoteEntityObject<T> {
+	trackObject(obj: T): EntityObject<T> {
 		const existing = this.findEntity(obj as Record<string, any>);
 		if (existing) {
 			existing.updateRemoteData(obj);
 			return existing;
 		}
-		const ent = new RemoteEntityObject<T>(this.ctx, this.name, 'read', obj);
-		this._objects[ent.localUid] = ent;
+		const ent = new EntityObject<T>(this.ctx, this.name, 'read', obj);
+		this._objects[ent.cid] = ent;
 		this._indexer.add(ent);
 		this.ctx.registerObject(ent);
 		return ent;
 	}
 
-	trackMultipleObjects(objs: T[]): RemoteEntityObject<T>[] {
-		const ents: RemoteEntityObject<T>[] = [];
+	trackMultipleObjects(objs: T[]): EntityObject<T>[] {
+		const ents: EntityObject<T>[] = [];
 		for (const obj of objs) {
 			const existing = this.findEntity(obj as Record<string, any>);
 			if (existing) {
@@ -86,8 +86,8 @@ export class EntitySet<T> {
 				ents.push(existing);
 				continue;
 			}
-			const ent = new RemoteEntityObject<T>(this.ctx, this.name, 'read', obj);
-			this._objects[ent.localUid] = ent;
+			const ent = new EntityObject<T>(this.ctx, this.name, 'read', obj);
+			this._objects[ent.cid] = ent;
 			this._indexer.add(ent);
 			ents.push(ent);
 		}

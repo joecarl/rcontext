@@ -1,6 +1,4 @@
 import { test, expect } from 'vitest';
-import { RContext } from '../src/RContext';
-import { RemoteEntityObject } from '../src/RemoteEntityObject';
 import { createContext } from './testContext';
 import { RContextStateReader } from '../src/RContextStateReader';
 
@@ -44,7 +42,7 @@ test('findEntity finds the entity by its uid', () => {
 	const state = ctx.getState();
 	const reader = ctx.createStateReader(state);
 
-	const res1 = reader.findEntity(set1, ent2.localUid);
+	const res1 = reader.findEntity(set1, ent2.cid);
 
 	expect(res1).toBeTruthy();
 	expect(res1?.data).toMatchObject(obj2);

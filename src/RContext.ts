@@ -1,5 +1,5 @@
 import type { IRemoteContextState, StateChangeType } from './RContextStateBuilder';
-import { RemoteEntityObject } from './RemoteEntityObject';
+import { EntityObject } from './EntityObject';
 import { RContextStateBuilder } from './RContextStateBuilder';
 import { buildObjectKey } from './utils';
 import { RContextStateReader } from './RContextStateReader';
@@ -49,7 +49,7 @@ export class RContext {
 
 	private setNameIndex: number = 0;
 
-	private objects: Record<string, RemoteEntityObject<any>> = {};
+	private objects: Record<string, EntityObject<any>> = {};
 
 	private setsDefinitions: Record<string, EntitySet<any>> = {};
 
@@ -83,19 +83,19 @@ export class RContext {
 	}
 
 	/** @internal */
-	registerObject(ent: RemoteEntityObject<any>) {
+	registerObject(ent: EntityObject<any>) {
 
-		this.objects[ent.localUid] = ent;
-		this.emitStateChange('add', [ent.localUid]);
+		this.objects[ent.cid] = ent;
+		this.emitStateChange('add', [ent.cid]);
 	}
 
 	/** @internal */
-	registerMultipleObjects(ents: RemoteEntityObject<any>[]) {
+	registerMultipleObjects(ents: EntityObject<any>[]) {
 
 		for (const ent of ents) {
-			this.objects[ent.localUid] = ent;
+			this.objects[ent.cid] = ent;
 		}
-		this.emitStateChange('add', ents.map(ent => ent.localUid));
+		this.emitStateChange('add', ents.map(ent => ent.cid));
 	}
 
 	/** @internal */
@@ -198,7 +198,7 @@ export class RContext {
 		const setDef = this.setsDefinitions[entitySet];
 		if (setDef.keys.length === 0) return null;
 
-		return setDef.findEntityByKeyString(id)?.localUid ?? null;
+		return setDef.findEntityByKeyString(id)?.cid ?? null;
 	}
 
 	/**
@@ -289,7 +289,7 @@ export class RContext {
 			const reqItem = this.objects[localUid];
 
 			if (!reqItem) {
-				console.warn('RemoteEntityObject with UID ' + localUid + ' not found');
+				console.warn('EntityObject with UID ' + localUid + ' not found');
 				continue;
 			}
 

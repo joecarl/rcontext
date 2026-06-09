@@ -1,7 +1,13 @@
 import type { RContext, IObjectRequest, EntityAction, EntityKeysRecord, IObjectResult } from './RContext';
 
-export class RemoteEntityObject<T> {
+/** @deprecated Use EntityObject instead, this is an alias to keep retrocompatibility with the previous version of the library */
+export type RemoteEntityObject<T> = EntityObject<T>;
 
+export class EntityObject<T> {
+
+	public readonly cid: string;
+
+	/**@deprecated Use cid instead, this is an alias to keep retrocompatibility with the previous version of the library */
 	public readonly localUid: string;
 
 	private remoteData: T | null = null;
@@ -19,8 +25,8 @@ export class RemoteEntityObject<T> {
 		localData?: Partial<T>
 	) {
 
-		this.localUid = this.ctx.getNewUid();
-
+		this.cid = this.ctx.getNewUid();
+		this.localUid = this.cid;
 		this.action = action ?? null;
 		if (this.action === 'create') {
 			this.remoteData = null;
@@ -69,7 +75,7 @@ export class RemoteEntityObject<T> {
 			...newData
 		};
 
-		this.ctx.emitStateChange('update', [this.localUid]);
+		this.ctx.emitStateChange('update', [this.cid]);
 	}
 
 	/**
@@ -78,10 +84,10 @@ export class RemoteEntityObject<T> {
 	remove() {
 
 		if (this.action === 'create') {
-			this.ctx.removeObject(this.localUid);
+			this.ctx.removeObject(this.cid);
 		} else {
 			this.action = 'delete';
-			this.ctx.emitStateChange('update', [this.localUid]);
+			this.ctx.emitStateChange('update', [this.cid]);
 		}
 	}
 
@@ -95,7 +101,7 @@ export class RemoteEntityObject<T> {
 		}
 
 		this.action = Object.keys(this.localData).length > 0 ? 'update' : 'read';
-		this.ctx.emitStateChange('update', [this.localUid]);
+		this.ctx.emitStateChange('update', [this.cid]);
 	}
 
 	/**
@@ -105,7 +111,7 @@ export class RemoteEntityObject<T> {
 
 		this.remove();
 		this.ctx.sync({
-			[this.localUid]: {
+			[this.cid]: {
 				success: true,
 				data: null,
 				message: '',
@@ -120,7 +126,7 @@ export class RemoteEntityObject<T> {
 	 */
 	untrack(): void {
 
-		this.ctx.removeObject(this.localUid);
+		this.ctx.removeObject(this.cid);
 	}
 
 	/**
@@ -137,7 +143,7 @@ export class RemoteEntityObject<T> {
 		}
 
 		if (this.action === 'create') {
-			this.ctx.removeObject(this.localUid);
+			this.ctx.removeObject(this.cid);
 			return;
 		}
 
@@ -145,7 +151,7 @@ export class RemoteEntityObject<T> {
 		this.localData = {};
 		this.syncResult = null;
 		this.action = 'read';
-		this.ctx.emitStateChange('update', [this.localUid]);
+		this.ctx.emitStateChange('update', [this.cid]);
 	}
 
 	/**
@@ -199,7 +205,7 @@ export class RemoteEntityObject<T> {
 
 			return {
 				entitySet: this.entitySetName,
-				remoteUid: this.localUid,
+				remoteUid: this.cid,
 				newData: this.localData,
 				action: this.action,
 				keys: this.getKeys(),
@@ -218,7 +224,7 @@ export class RemoteEntityObject<T> {
 			throw new Error('Cannot update remote data of a local object');
 		}
 		this.remoteData = { ...this.remoteData, ...remoteData };
-		this.ctx.emitStateChange('update', [this.localUid]);
+		this.ctx.emitStateChange('update', [this.cid]);
 	}
 
 	/**
@@ -271,7 +277,7 @@ export class RemoteEntityObject<T> {
 	toRelationalKey() {
 
 		if (this.action === 'create') {
-			return this.localUid;
+			return this.cid;
 		}
 
 		const setDef = this.ctx.getSetDefinition(this.entitySetName);
